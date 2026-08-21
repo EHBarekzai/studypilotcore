@@ -17,6 +17,7 @@ export type Database = {
       exams: {
         Row: {
           created_at: string
+          difficulty: string
           exam_date: string
           id: string
           location: string | null
@@ -24,11 +25,13 @@ export type Database = {
           start_time: string | null
           subject_id: string | null
           title: string
+          topics: string[]
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          difficulty?: string
           exam_date: string
           id?: string
           location?: string | null
@@ -36,11 +39,13 @@ export type Database = {
           start_time?: string | null
           subject_id?: string | null
           title: string
+          topics?: string[]
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          difficulty?: string
           exam_date?: string
           id?: string
           location?: string | null
@@ -48,6 +53,7 @@ export type Database = {
           start_time?: string | null
           subject_id?: string | null
           title?: string
+          topics?: string[]
           updated_at?: string
           user_id?: string
         }
@@ -198,26 +204,38 @@ export type Database = {
       }
       subjects: {
         Row: {
+          archived: boolean
           color: string
           created_at: string
+          difficulty: string
+          icon: string
           id: string
           name: string
+          priority: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          archived?: boolean
           color?: string
           created_at?: string
+          difficulty?: string
+          icon?: string
           id?: string
           name: string
+          priority?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          archived?: boolean
           color?: string
           created_at?: string
+          difficulty?: string
+          icon?: string
           id?: string
           name?: string
+          priority?: string
           updated_at?: string
           user_id?: string
         }
@@ -227,6 +245,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string
+          difficulty: string
           due_date: string | null
           estimated_minutes: number
           id: string
@@ -241,6 +260,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
+          difficulty?: string
           due_date?: string | null
           estimated_minutes?: number
           id?: string
@@ -255,6 +275,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
+          difficulty?: string
           due_date?: string | null
           estimated_minutes?: number
           id?: string
