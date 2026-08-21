@@ -69,19 +69,30 @@ export function useSubjects() {
   });
 }
 
+export type SubjectInput = Database["public"]["Tables"]["subjects"]["Insert"];
+
 export function useCreateSubject() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { name: string; color?: string }) => {
+    mutationFn: async (input: Omit<SubjectInput, "user_id">) => {
       const userId = await currentUserId();
       return unwrap(
         await supabase
           .from("subjects")
-          .insert({ user_id: userId, name: input.name, color: input.color ?? "teal" })
+          .insert({ ...input, user_id: userId })
           .select()
           .single(),
       );
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["subjects"] }),
+  });
+}
+
+export function useUpdateSubject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: Partial<Subject> & { id: string }) =>
+      unwrap(await supabase.from("subjects").update(patch).eq("id", id).select().single()),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["subjects"] }),
   });
 }
@@ -100,6 +111,7 @@ export function useDeleteSubject() {
     },
   });
 }
+
 
 /* ----------------------------------- tasks ---------------------------------- */
 
