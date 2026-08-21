@@ -38,7 +38,7 @@ const COLOR_CLASS: Record<string, string> = {
 };
 
 export function colorClass(color?: string | null) {
-  return COLOR_CLASS[color ?? "teal"] ?? COLOR_CLASS.teal;
+  return COLOR_CLASS[color ?? "teal"] ?? COLOR_CLASS["teal"]!;
 }
 
 export function priorityClass(priority: string) {
