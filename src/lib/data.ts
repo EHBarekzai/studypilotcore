@@ -193,6 +193,16 @@ export function useCreateExam() {
   });
 }
 
+export function useUpdateExam() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...patch }: Partial<Exam> & { id: string }) =>
+      unwrap(await supabase.from("exams").update(patch).eq("id", id).select().single()),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["exams"] }),
+  });
+}
+
+
 export function useDeleteExam() {
   const qc = useQueryClient();
   return useMutation({
