@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
+  BookOpen,
   CalendarDays,
   GraduationCap,
   LayoutDashboard,
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 export const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/tasks", label: "Tasks", icon: ListChecks },
+  { to: "/subjects", label: "Subjects", icon: BookOpen },
   { to: "/exams", label: "Exams", icon: GraduationCap },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/progress", label: "Progress", icon: TrendingUp },
@@ -91,13 +93,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile bottom navigation */}
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 backdrop-blur lg:hidden">
-        <ul className="grid grid-cols-6">
+        <ul className="grid grid-cols-7">
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
             <li key={to}>
               <Link
                 to={to}
                 className={cn(
-                  "flex flex-col items-center gap-1 px-1 pt-2 pb-1 text-[10px] font-medium text-muted-foreground transition-colors",
+                  "flex flex-col items-center gap-1 px-1 pt-2 pb-1 text-[9px] font-medium text-muted-foreground transition-colors",
                   "data-[status=active]:text-primary",
                 )}
               >
