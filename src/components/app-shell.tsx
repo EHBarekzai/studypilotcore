@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
+  Sparkles,
   Settings,
   TrendingUp,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 
 export const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/plan", label: "Plan", icon: Sparkles },
   { to: "/tasks", label: "Tasks", icon: ListChecks },
   { to: "/subjects", label: "Subjects", icon: BookOpen },
   { to: "/exams", label: "Exams", icon: GraduationCap },
@@ -93,7 +95,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile bottom navigation */}
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 backdrop-blur lg:hidden">
-        <ul className="grid grid-cols-7">
+        <ul className="grid grid-cols-8">
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
             <li key={to}>
               <Link
