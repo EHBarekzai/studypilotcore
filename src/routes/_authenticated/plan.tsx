@@ -44,6 +44,7 @@ import {
   useCreatePlannedSession,
   useDeletePlannedSession,
   useGeneratePlan,
+  usePlannedSessions,
   useSmartReschedule,
   useUpdatePlannedSession,
   type PlannedSession,
@@ -125,7 +126,7 @@ function PlanPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [timerSession, setTimerSession] = useState<PlannedSession | null>(null);
 
-  const sessionsQuery = usePlannedSessionsSafe();
+  const sessionsQuery = usePlannedSessions();
   const subjects = useSubjects();
   const tasks = useTasks();
   const exams = useExams();
@@ -240,7 +241,7 @@ function PlanPage() {
       await completeSession.mutateAsync({
         session,
         completed: session.status !== "completed",
-        minutes,
+        ...(minutes === undefined ? {} : { minutes }),
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not update the session.");
@@ -595,11 +596,3 @@ function PlanPage() {
     </AppShell>
   );
 }
-
-/** Small wrapper so the query hook import stays local to this route. */
-function usePlannedSessionsSafe() {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return usePlannedSessionsHook();
-}
-
-import { usePlannedSessions as usePlannedSessionsHook } from "@/lib/plan-data";
