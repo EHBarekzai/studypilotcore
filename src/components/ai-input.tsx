@@ -19,7 +19,7 @@ export function AttachmentPicker({
 }: {
   attachments: Attachment[];
   onChange: (next: Attachment[]) => void;
-  disabled?: boolean;
+  disabled?: boolean | undefined;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
