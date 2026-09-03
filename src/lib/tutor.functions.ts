@@ -7,7 +7,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * LOVABLE_API_KEY is read inside handlers only — it never reaches the browser.
  */
 
-const MODEL = "google/gemini-2.5-flash";
+const MODEL = "google/gemini-3.7-flash";
 const MAX_ATTACHMENTS = 4;
 const MAX_ATTACHMENT_CHARS = 7_000_000; // ~5MB binary as base64
 const MAX_TEXT_CHARS = 12_000;
