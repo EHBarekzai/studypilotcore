@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_activity: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          meta: Json
+          score: number | null
+          subject_id: string | null
+          topic: string | null
+          total: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          meta?: Json
+          score?: number | null
+          subject_id?: string | null
+          topic?: string | null
+          total?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          meta?: Json
+          score?: number | null
+          subject_id?: string | null
+          topic?: string | null
+          total?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_activity_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exams: {
         Row: {
           created_at: string
@@ -185,6 +232,39 @@ export type Database = {
           study_goals?: string | null
           theme?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      study_files: {
+        Row: {
+          created_at: string
+          id: string
+          mime_type: string
+          name: string
+          size_bytes: number
+          storage_path: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mime_type: string
+          name: string
+          size_bytes?: number
+          storage_path: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mime_type?: string
+          name?: string
+          size_bytes?: number
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
