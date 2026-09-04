@@ -1,8 +1,11 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   BookOpen,
+  Brain,
   CalendarDays,
+  CircleHelp,
   GraduationCap,
+  Layers,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -26,9 +29,13 @@ export const NAV_ITEMS = [
   { to: "/subjects", label: "Subjects", icon: BookOpen },
   { to: "/exams", label: "Exams", icon: GraduationCap },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
+  { to: "/helper", label: "Helper", icon: Brain },
+  { to: "/flashcards", label: "Cards", icon: Layers },
+  { to: "/quiz", label: "Quiz", icon: CircleHelp },
   { to: "/progress", label: "Progress", icon: TrendingUp },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
+
 
 export function useSignOut() {
   const navigate = useNavigate();
@@ -95,9 +102,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile bottom navigation */}
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 backdrop-blur lg:hidden">
-        <ul className="grid grid-cols-8">
+        <ul className="flex snap-x overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-            <li key={to}>
+            <li key={to} className="min-w-[4.25rem] flex-1 snap-start">
               <Link
                 to={to}
                 className={cn(
@@ -105,6 +112,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   "data-[status=active]:text-primary",
                 )}
               >
+
                 <Icon className="size-5" />
                 <span className="truncate">{label}</span>
               </Link>
