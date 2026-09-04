@@ -102,7 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile bottom navigation */}
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 backdrop-blur lg:hidden">
-        <ul className="flex snap-x overflow-x-auto scrollbar-none">
+        <ul className="flex snap-x overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
             <li key={to} className="min-w-[4.25rem] flex-1 snap-start">
               <Link
