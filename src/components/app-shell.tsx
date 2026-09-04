@@ -102,9 +102,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile bottom navigation */}
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 backdrop-blur lg:hidden">
-        <ul className="grid grid-cols-8">
+        <ul className="flex snap-x overflow-x-auto scrollbar-none">
           {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-            <li key={to}>
+            <li key={to} className="min-w-[4.25rem] flex-1 snap-start">
               <Link
                 to={to}
                 className={cn(
@@ -112,6 +112,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   "data-[status=active]:text-primary",
                 )}
               >
+
                 <Icon className="size-5" />
                 <span className="truncate">{label}</span>
               </Link>
