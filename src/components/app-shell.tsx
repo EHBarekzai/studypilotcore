@@ -1,8 +1,11 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   BookOpen,
+  Brain,
   CalendarDays,
+  CircleHelp,
   GraduationCap,
+  Layers,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -26,9 +29,13 @@ export const NAV_ITEMS = [
   { to: "/subjects", label: "Subjects", icon: BookOpen },
   { to: "/exams", label: "Exams", icon: GraduationCap },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
+  { to: "/helper", label: "Helper", icon: Brain },
+  { to: "/flashcards", label: "Cards", icon: Layers },
+  { to: "/quiz", label: "Quiz", icon: CircleHelp },
   { to: "/progress", label: "Progress", icon: TrendingUp },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
+
 
 export function useSignOut() {
   const navigate = useNavigate();
