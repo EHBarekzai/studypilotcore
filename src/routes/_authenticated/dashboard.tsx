@@ -314,7 +314,23 @@ function DashboardPage() {
                 </ul>
               </section>
             ) : null}
+
+            <section className="space-y-3">
+              <h2 className="font-display text-lg font-semibold">AI study tools</h2>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {AI_TOOLS.map(({ to, title, description, icon: Icon }) => (
+                  <Link key={to} to={to} className="surface-card group space-y-2 p-4">
+                    <span className="flex size-9 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                      <Icon className="size-5" />
+                    </span>
+                    <p className="text-sm font-semibold group-hover:text-primary">{title}</p>
+                    <p className="text-xs text-muted-foreground">{description}</p>
+                  </Link>
+                ))}
+              </div>
+            </section>
           </>
+
         )}
       </div>
     </AppShell>
