@@ -4,41 +4,35 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ACCEPTED_TYPES,
-  MAX_FILES,
-  fileToAttachment,
-  type Attachment,
-} from "@/lib/tutor";
+  ACCEPTED_UPLOAD_TYPES,
+  MAX_UPLOAD_FILES,
+  formatBytes,
+  type useStudyUploads,
+} from "@/lib/uploads";
+
+export type UploadsState = ReturnType<typeof useStudyUploads>;
 
 export function AttachmentPicker({
-  attachments,
-  onChange,
+  uploads,
   disabled,
 }: {
-  attachments: Attachment[];
-  onChange: (next: Attachment[]) => void;
+  uploads: UploadsState;
   disabled?: boolean | undefined;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const { files, progress, busy, add, remove } = uploads;
 
-  const handleFiles = async (files: FileList | null) => {
-    if (!files?.length) return;
-    const room = MAX_FILES - attachments.length;
+  const handleFiles = async (list: FileList | null) => {
+    if (!list?.length) return;
+    const room = MAX_UPLOAD_FILES - files.length;
     if (room <= 0) {
-      toast.error(`You can attach up to ${MAX_FILES} files.`);
+      toast.error(`You can attach up to ${MAX_UPLOAD_FILES} files.`);
       return;
     }
-    const next: Attachment[] = [];
-    for (const file of Array.from(files).slice(0, room)) {
-      try {
-        next.push(await fileToAttachment(file));
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "That file could not be added.");
-      }
-    }
-    if (next.length) onChange([...attachments, ...next]);
+    await add(Array.from(list).slice(0, room), (message) => toast.error(message));
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -48,7 +42,7 @@ export function AttachmentPicker({
         ref={inputRef}
         type="file"
         multiple
-        accept={ACCEPTED_TYPES}
+        accept={ACCEPTED_UPLOAD_TYPES}
         className="hidden"
         onChange={(e) => void handleFiles(e.target.files)}
       />
@@ -56,37 +50,61 @@ export function AttachmentPicker({
         type="button"
         variant="outline"
         size="sm"
-        disabled={disabled}
+        disabled={disabled || busy}
         onClick={() => inputRef.current?.click()}
         className="gap-2"
       >
         <Paperclip className="size-4" />
-        Attach image or PDF
+        {busy ? "Uploading…" : "Attach image or PDF"}
       </Button>
 
-      {attachments.length ? (
+      {progress.length ? (
+        <ul className="space-y-2" aria-live="polite">
+          {progress.map((item) => (
+            <li key={item.name} className="space-y-1 rounded-xl border p-2.5">
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="truncate">{item.name}</span>
+                <span className="text-muted-foreground">{item.percent}%</span>
+              </div>
+              <Progress value={item.percent} aria-label={`Uploading ${item.name}`} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {files.length ? (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {attachments.map((a, index) => (
-            <li key={`${a.name}-${index}`} className="relative overflow-hidden rounded-xl border">
-              {a.mimeType.startsWith("image/") ? (
+          {files.map((file) => (
+            <li key={file.id} className="relative overflow-hidden rounded-xl border">
+              {file.previewUrl ? (
                 <img
-                  src={a.dataUrl}
-                  alt={`Attachment preview: ${a.name}`}
+                  src={file.previewUrl}
+                  alt={`Attachment preview: ${file.name}`}
                   className="h-24 w-full object-cover"
                   loading="lazy"
                 />
               ) : (
                 <div className="flex h-24 flex-col items-center justify-center gap-1 bg-muted/50 text-muted-foreground">
-                  <FileText className="size-6" />
-                  <span className="text-[10px] uppercase tracking-wide">PDF</span>
+                  {file.mimeType === "application/pdf" ? (
+                    <FileText className="size-6" />
+                  ) : (
+                    <ImageIcon className="size-6" />
+                  )}
+                  <span className="text-[10px] uppercase tracking-wide">
+                    {file.mimeType === "application/pdf" ? "PDF" : "Image"}
+                  </span>
                 </div>
               )}
-              <p className="truncate px-2 py-1.5 text-[11px] text-muted-foreground">{a.name}</p>
+              <p className="truncate px-2 pt-1.5 text-[11px] text-muted-foreground">{file.name}</p>
+              <p className="px-2 pb-1.5 text-[10px] text-muted-foreground">
+                {formatBytes(file.sizeBytes)}
+                {file.storagePath ? " · stored securely" : ""}
+              </p>
               <button
                 type="button"
-                aria-label={`Remove ${a.name}`}
+                aria-label={`Remove ${file.name}`}
                 className="absolute right-1 top-1 rounded-full bg-background/90 p-1 text-muted-foreground shadow-sm transition-colors hover:text-destructive"
-                onClick={() => onChange(attachments.filter((_, i) => i !== index))}
+                onClick={() => remove(file.id)}
               >
                 <X className="size-3.5" />
               </button>
@@ -96,7 +114,7 @@ export function AttachmentPicker({
       ) : (
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <ImageIcon className="size-3.5" />
-          Up to {MAX_FILES} files, 5MB each. Images and PDFs are read with AI vision.
+          Up to {MAX_UPLOAD_FILES} files, 50MB each. Images and PDFs are read with AI vision.
         </p>
       )}
     </div>
@@ -108,8 +126,7 @@ export function AiSourceInput({
   placeholder,
   value,
   onChange,
-  attachments,
-  onAttachmentsChange,
+  uploads,
   disabled,
   rows = 5,
 }: {
@@ -117,8 +134,7 @@ export function AiSourceInput({
   placeholder: string;
   value: string;
   onChange: (next: string) => void;
-  attachments: Attachment[];
-  onAttachmentsChange: (next: Attachment[]) => void;
+  uploads: UploadsState;
   disabled?: boolean;
   rows?: number;
 }) {
@@ -135,11 +151,7 @@ export function AiSourceInput({
           onChange={(e) => onChange(e.target.value)}
         />
       </div>
-      <AttachmentPicker
-        attachments={attachments}
-        onChange={onAttachmentsChange}
-        disabled={disabled}
-      />
+      <AttachmentPicker uploads={uploads} disabled={disabled} />
     </div>
   );
 }
