@@ -272,3 +272,61 @@ export function useStudyPlans() {
       ),
   });
 }
+
+/* ------------------------------- ai activity -------------------------------- */
+
+export type AiActivity = Database["public"]["Tables"]["ai_activity"]["Row"];
+
+export function useAiActivity() {
+  return useQuery({
+    queryKey: ["ai_activity"],
+    queryFn: async () =>
+      unwrap(
+        await supabase
+          .from("ai_activity")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(500),
+      ),
+  });
+}
+
+/** Records an AI study action (homework help, flashcards, quiz) for analytics. */
+export function useLogAiActivity() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      kind: "homework" | "flashcards" | "quiz";
+      topic?: string | null;
+      score?: number | null;
+      total?: number | null;
+      meta?: Record<string, unknown>;
+    }) => {
+      const userId = await currentUserId();
+      const { error } = await supabase.from("ai_activity").insert({
+        user_id: userId,
+        kind: input.kind,
+        topic: input.topic ?? null,
+        score: input.score ?? null,
+        total: input.total ?? null,
+        meta: (input.meta ?? {}) as never,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["ai_activity"] }),
+  });
+}
+
+/* ------------------------------- study files -------------------------------- */
+
+export type StudyFile = Database["public"]["Tables"]["study_files"]["Row"];
+
+export function useStudyFiles() {
+  return useQuery({
+    queryKey: ["study_files"],
+    queryFn: async () =>
+      unwrap(
+        await supabase.from("study_files").select("*").order("created_at", { ascending: false }),
+      ),
+  });
+}
