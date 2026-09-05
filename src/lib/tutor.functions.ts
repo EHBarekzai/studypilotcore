@@ -9,15 +9,21 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const MODEL = "google/gemini-3.7-flash";
 const MAX_ATTACHMENTS = 4;
-const MAX_ATTACHMENT_CHARS = 7_000_000; // ~5MB binary as base64
+/** Inline data URLs stay small; bigger files travel through private storage. */
+const MAX_ATTACHMENT_CHARS = 4_500_000; // ~3MB binary as base64
+/** Largest stored file we will read into the AI request (50MB bucket limit). */
+const MAX_STORED_BYTES = 50 * 1024 * 1024;
 const MAX_TEXT_CHARS = 12_000;
 
 export type Attachment = {
   name: string;
   mimeType: string;
-  /** data: URL containing base64 content */
-  dataUrl: string;
+  /** data: URL containing base64 content, for small inline files */
+  dataUrl?: string;
+  /** private storage path (bucket `study-uploads`), for large files */
+  storagePath?: string;
 };
+
 
 export type QuizQuestionType = "mcq" | "true_false" | "short_answer";
 
