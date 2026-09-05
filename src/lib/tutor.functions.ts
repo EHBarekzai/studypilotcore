@@ -61,11 +61,16 @@ function sanitizeAttachments(value: unknown): Attachment[] {
     .map((item) => {
       const a = item as Partial<Attachment>;
       const dataUrl = typeof a?.dataUrl === "string" ? a.dataUrl : "";
+      const storagePath = typeof a?.storagePath === "string" ? a.storagePath.slice(0, 400) : "";
       const mimeType = typeof a?.mimeType === "string" ? a.mimeType : "";
       const name = sanitizeText(a?.name, 120) || "attachment";
-      if (!dataUrl.startsWith("data:") || dataUrl.length > MAX_ATTACHMENT_CHARS) return null;
       if (!mimeType.startsWith("image/") && mimeType !== "application/pdf") return null;
-      return { name, mimeType, dataUrl };
+      if (dataUrl) {
+        if (!dataUrl.startsWith("data:") || dataUrl.length > MAX_ATTACHMENT_CHARS) return null;
+        return { name, mimeType, dataUrl } satisfies Attachment;
+      }
+      if (!storagePath || storagePath.includes("..")) return null;
+      return { name, mimeType, storagePath } satisfies Attachment;
     })
     .filter((a): a is Attachment => a !== null);
 }
@@ -75,18 +80,50 @@ type ContentPart =
   | { type: "image_url"; image_url: { url: string } }
   | { type: "file"; file: { filename: string; file_data: string } };
 
-function buildUserContent(text: string, attachments: Attachment[]): string | ContentPart[] {
+type StorageClient = {
+  storage: {
+    from: (bucket: string) => {
+      download: (path: string) => Promise<{ data: Blob | null; error: { message: string } | null }>;
+    };
+  };
+};
+
+function toBase64(bytes: Uint8Array) {
+  let binary = "";
+  const chunk = 8192;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+/** Reads a stored file (RLS-scoped to the caller) and returns it as a data URL. */
+async function storedDataUrl(client: StorageClient, path: string, mimeType: string) {
+  const { data, error } = await client.storage.from("study-uploads").download(path);
+  if (error || !data) throw new Error("An uploaded file could not be read. Try uploading it again.");
+  if (data.size > MAX_STORED_BYTES) throw new Error("That file is too large to process (max 50MB).");
+  const buffer = new Uint8Array(await data.arrayBuffer());
+  return `data:${mimeType};base64,${toBase64(buffer)}`;
+}
+
+async function buildUserContent(
+  text: string,
+  attachments: Attachment[],
+  client: StorageClient,
+): Promise<string | ContentPart[]> {
   if (!attachments.length) return text;
   const parts: ContentPart[] = [{ type: "text", text: text || "See the attached material." }];
   for (const a of attachments) {
+    const url = a.dataUrl ?? (await storedDataUrl(client, a.storagePath!, a.mimeType));
     if (a.mimeType.startsWith("image/")) {
-      parts.push({ type: "image_url", image_url: { url: a.dataUrl } });
+      parts.push({ type: "image_url", image_url: { url } });
     } else {
-      parts.push({ type: "file", file: { filename: a.name, file_data: a.dataUrl } });
+      parts.push({ type: "file", file: { filename: a.name, file_data: url } });
     }
   }
   return parts;
 }
+
 
 async function callGateway(system: string, userContent: string | ContentPart[]) {
   const apiKey = process.env["LOVABLE_API_KEY"];
