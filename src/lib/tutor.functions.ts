@@ -9,15 +9,21 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const MODEL = "google/gemini-3.7-flash";
 const MAX_ATTACHMENTS = 4;
-const MAX_ATTACHMENT_CHARS = 7_000_000; // ~5MB binary as base64
+/** Inline data URLs stay small; bigger files travel through private storage. */
+const MAX_ATTACHMENT_CHARS = 4_500_000; // ~3MB binary as base64
+/** Largest stored file we will read into the AI request (50MB bucket limit). */
+const MAX_STORED_BYTES = 50 * 1024 * 1024;
 const MAX_TEXT_CHARS = 12_000;
 
 export type Attachment = {
   name: string;
   mimeType: string;
-  /** data: URL containing base64 content */
-  dataUrl: string;
+  /** data: URL containing base64 content, for small inline files */
+  dataUrl?: string;
+  /** private storage path (bucket `study-uploads`), for large files */
+  storagePath?: string;
 };
+
 
 export type QuizQuestionType = "mcq" | "true_false" | "short_answer";
 
@@ -52,15 +58,21 @@ function sanitizeAttachments(value: unknown): Attachment[] {
   if (!Array.isArray(value)) return [];
   return value
     .slice(0, MAX_ATTACHMENTS)
-    .map((item) => {
+    .map((item): Attachment | null => {
       const a = item as Partial<Attachment>;
       const dataUrl = typeof a?.dataUrl === "string" ? a.dataUrl : "";
+      const storagePath = typeof a?.storagePath === "string" ? a.storagePath.slice(0, 400) : "";
       const mimeType = typeof a?.mimeType === "string" ? a.mimeType : "";
       const name = sanitizeText(a?.name, 120) || "attachment";
-      if (!dataUrl.startsWith("data:") || dataUrl.length > MAX_ATTACHMENT_CHARS) return null;
       if (!mimeType.startsWith("image/") && mimeType !== "application/pdf") return null;
-      return { name, mimeType, dataUrl };
+      if (dataUrl) {
+        if (!dataUrl.startsWith("data:") || dataUrl.length > MAX_ATTACHMENT_CHARS) return null;
+        return { name, mimeType, dataUrl };
+      }
+      if (!storagePath || storagePath.includes("..")) return null;
+      return { name, mimeType, storagePath };
     })
+
     .filter((a): a is Attachment => a !== null);
 }
 
@@ -69,18 +81,50 @@ type ContentPart =
   | { type: "image_url"; image_url: { url: string } }
   | { type: "file"; file: { filename: string; file_data: string } };
 
-function buildUserContent(text: string, attachments: Attachment[]): string | ContentPart[] {
+type StorageClient = {
+  storage: {
+    from: (bucket: string) => {
+      download: (path: string) => Promise<{ data: Blob | null; error: { message: string } | null }>;
+    };
+  };
+};
+
+function toBase64(bytes: Uint8Array) {
+  let binary = "";
+  const chunk = 8192;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+/** Reads a stored file (RLS-scoped to the caller) and returns it as a data URL. */
+async function storedDataUrl(client: StorageClient, path: string, mimeType: string) {
+  const { data, error } = await client.storage.from("study-uploads").download(path);
+  if (error || !data) throw new Error("An uploaded file could not be read. Try uploading it again.");
+  if (data.size > MAX_STORED_BYTES) throw new Error("That file is too large to process (max 50MB).");
+  const buffer = new Uint8Array(await data.arrayBuffer());
+  return `data:${mimeType};base64,${toBase64(buffer)}`;
+}
+
+async function buildUserContent(
+  text: string,
+  attachments: Attachment[],
+  client: StorageClient,
+): Promise<string | ContentPart[]> {
   if (!attachments.length) return text;
   const parts: ContentPart[] = [{ type: "text", text: text || "See the attached material." }];
   for (const a of attachments) {
+    const url = a.dataUrl ?? (await storedDataUrl(client, a.storagePath!, a.mimeType));
     if (a.mimeType.startsWith("image/")) {
-      parts.push({ type: "image_url", image_url: { url: a.dataUrl } });
+      parts.push({ type: "image_url", image_url: { url } });
     } else {
-      parts.push({ type: "file", file: { filename: a.name, file_data: a.dataUrl } });
+      parts.push({ type: "file", file: { filename: a.name, file_data: url } });
     }
   }
   return parts;
 }
+
 
 async function callGateway(system: string, userContent: string | ContentPart[]) {
   const apiKey = process.env["LOVABLE_API_KEY"];
@@ -136,7 +180,7 @@ export const solveHomework = createServerFn({ method: "POST" })
     text: sanitizeText(input?.text),
     attachments: sanitizeAttachments(input?.attachments),
   }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     requireInput(data.text, data.attachments);
 
     const system = [
@@ -148,7 +192,10 @@ export const solveHomework = createServerFn({ method: "POST" })
       "never invent content that is not in the input; if unreadable, say so in answer. Keep it concise.",
     ].join(" ");
 
-    const parsed = await callGateway(system, buildUserContent(data.text, data.attachments));
+    const parsed = await callGateway(
+      system,
+      await buildUserContent(data.text, data.attachments, context.supabase),
+    );
     const raw = Array.isArray(parsed["questions"]) ? (parsed["questions"] as unknown[]) : [];
 
     const questions = raw.slice(0, 10).map((item) => {
@@ -182,7 +229,7 @@ export const generateFlashcards = createServerFn({ method: "POST" })
     attachments: sanitizeAttachments(input?.attachments),
     count: Math.min(30, Math.max(5, Math.round(Number(input?.count) || 10))),
   }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     requireInput(data.text, data.attachments);
 
     const system = [
@@ -193,7 +240,10 @@ export const generateFlashcards = createServerFn({ method: "POST" })
       "hint is optional and very short; cover the whole material without duplicates; stay strictly on the given content.",
     ].join(" ");
 
-    const parsed = await callGateway(system, buildUserContent(data.text, data.attachments));
+    const parsed = await callGateway(
+      system,
+      await buildUserContent(data.text, data.attachments, context.supabase),
+    );
     const raw = Array.isArray(parsed["cards"]) ? (parsed["cards"] as unknown[]) : [];
 
     const cards = raw
@@ -241,7 +291,7 @@ export const generateQuiz = createServerFn({ method: "POST" })
       };
     },
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     requireInput(data.text, data.attachments);
 
     const system = [
@@ -253,7 +303,10 @@ export const generateQuiz = createServerFn({ method: "POST" })
       "explanation is one or two sentences justifying the answer; mix the types evenly; stay strictly on the given material.",
     ].join(" ");
 
-    const parsed = await callGateway(system, buildUserContent(data.text, data.attachments));
+    const parsed = await callGateway(
+      system,
+      await buildUserContent(data.text, data.attachments, context.supabase),
+    );
     const raw = Array.isArray(parsed["questions"]) ? (parsed["questions"] as unknown[]) : [];
 
     const questions = raw

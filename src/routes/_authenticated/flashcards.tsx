@@ -11,6 +11,7 @@ import {
 import { useState } from "react";
 
 import { AiSourceInput } from "@/components/ai-input";
+import { toAttachments, useStudyUploads } from "@/lib/uploads";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
@@ -24,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useGenerateFlashcards, type Attachment } from "@/lib/tutor";
+import { useGenerateFlashcards } from "@/lib/tutor";
 import type { Flashcard } from "@/lib/tutor.functions";
 
 const DESCRIPTION =
@@ -55,7 +56,7 @@ function shuffleCards(cards: Flashcard[]) {
 
 function FlashcardsPage() {
   const [text, setText] = useState("");
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const uploads = useStudyUploads();
   const [count, setCount] = useState("10");
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [title, setTitle] = useState("Flashcards");
@@ -67,7 +68,7 @@ function FlashcardsPage() {
   const run = () => {
     if (generate.isPending) return;
     generate.mutate(
-      { text, attachments, count: Number(count) },
+      { text, attachments: toAttachments(uploads.files), count: Number(count) },
       {
         onSuccess: (data) => {
           setCards(data.cards);
@@ -97,8 +98,7 @@ function FlashcardsPage() {
             placeholder="e.g. Photosynthesis — light and dark reactions"
             value={text}
             onChange={setText}
-            attachments={attachments}
-            onAttachmentsChange={setAttachments}
+            uploads={uploads}
             disabled={generate.isPending}
           />
           <div className="flex flex-wrap items-end gap-3">

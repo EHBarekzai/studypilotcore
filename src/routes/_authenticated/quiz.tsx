@@ -3,6 +3,7 @@ import { Check, CircleHelp, RefreshCw, RotateCcw, Sparkles, X } from "lucide-rea
 import { useState } from "react";
 
 import { AiSourceInput } from "@/components/ai-input";
+import { toAttachments, useStudyUploads } from "@/lib/uploads";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader, StatCard } from "@/components/page-header";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
 import { titleCase } from "@/lib/study";
-import { useGenerateQuiz, useGradeShortAnswers, type Attachment, type QuizQuestionType } from "@/lib/tutor";
+import { useGenerateQuiz, useGradeShortAnswers, type QuizQuestionType } from "@/lib/tutor";
 import type { QuizQuestion } from "@/lib/tutor.functions";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +52,7 @@ type Grade = { correct: boolean; feedback?: string };
 
 function QuizPage() {
   const [text, setText] = useState("");
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const uploads = useStudyUploads();
   const [count, setCount] = useState("8");
   const [difficulty, setDifficulty] = useState("medium");
   const [types, setTypes] = useState<QuizQuestionType[]>(["mcq", "true_false"]);
@@ -78,7 +79,7 @@ function QuizPage() {
   const run = () => {
     if (busy) return;
     generate.mutate(
-      { text, attachments, count: Number(count), difficulty, types },
+      { text, attachments: toAttachments(uploads.files), count: Number(count), difficulty, types },
       {
         onSuccess: (data) => {
           setQuestions(data.questions);
@@ -145,8 +146,7 @@ function QuizPage() {
             placeholder="e.g. World War II causes and consequences"
             value={text}
             onChange={setText}
-            attachments={attachments}
-            onAttachmentsChange={setAttachments}
+            uploads={uploads}
             disabled={busy}
           />
 

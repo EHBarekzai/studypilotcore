@@ -3,12 +3,13 @@ import { Lightbulb, RefreshCw, Sparkles, Wand2 } from "lucide-react";
 import { useState } from "react";
 
 import { AiSourceInput } from "@/components/ai-input";
+import { toAttachments, useStudyUploads } from "@/lib/uploads";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useSolveHomework, type Attachment } from "@/lib/tutor";
+import { useSolveHomework } from "@/lib/tutor";
 
 const DESCRIPTION =
   "Type or paste a question, or upload a photo or PDF — get clear step-by-step solutions.";
@@ -29,13 +30,13 @@ export const Route = createFileRoute("/_authenticated/helper")({
 
 function HelperPage() {
   const [text, setText] = useState("");
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const uploads = useStudyUploads();
   const solve = useSolveHomework();
   const result = solve.data;
 
   const run = () => {
     if (solve.isPending) return;
-    solve.mutate({ text, attachments });
+    solve.mutate({ text, attachments: toAttachments(uploads.files) });
   };
 
   return (
@@ -49,8 +50,7 @@ function HelperPage() {
             placeholder="e.g. Solve 3x² − 12 = 0 and explain each step"
             value={text}
             onChange={setText}
-            attachments={attachments}
-            onAttachmentsChange={setAttachments}
+            uploads={uploads}
             disabled={solve.isPending}
           />
           <div className="flex flex-wrap gap-2">
