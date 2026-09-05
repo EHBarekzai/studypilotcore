@@ -58,7 +58,7 @@ function sanitizeAttachments(value: unknown): Attachment[] {
   if (!Array.isArray(value)) return [];
   return value
     .slice(0, MAX_ATTACHMENTS)
-    .map((item) => {
+    .map((item): Attachment | null => {
       const a = item as Partial<Attachment>;
       const dataUrl = typeof a?.dataUrl === "string" ? a.dataUrl : "";
       const storagePath = typeof a?.storagePath === "string" ? a.storagePath.slice(0, 400) : "";
@@ -67,11 +67,12 @@ function sanitizeAttachments(value: unknown): Attachment[] {
       if (!mimeType.startsWith("image/") && mimeType !== "application/pdf") return null;
       if (dataUrl) {
         if (!dataUrl.startsWith("data:") || dataUrl.length > MAX_ATTACHMENT_CHARS) return null;
-        return { name, mimeType, dataUrl } satisfies Attachment;
+        return { name, mimeType, dataUrl };
       }
       if (!storagePath || storagePath.includes("..")) return null;
-      return { name, mimeType, storagePath } satisfies Attachment;
+      return { name, mimeType, storagePath };
     })
+
     .filter((a): a is Attachment => a !== null);
 }
 
