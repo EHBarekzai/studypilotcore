@@ -180,7 +180,7 @@ export const solveHomework = createServerFn({ method: "POST" })
     text: sanitizeText(input?.text),
     attachments: sanitizeAttachments(input?.attachments),
   }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     requireInput(data.text, data.attachments);
 
     const system = [
@@ -192,7 +192,10 @@ export const solveHomework = createServerFn({ method: "POST" })
       "never invent content that is not in the input; if unreadable, say so in answer. Keep it concise.",
     ].join(" ");
 
-    const parsed = await callGateway(system, buildUserContent(data.text, data.attachments));
+    const parsed = await callGateway(
+      system,
+      await buildUserContent(data.text, data.attachments, context.supabase),
+    );
     const raw = Array.isArray(parsed["questions"]) ? (parsed["questions"] as unknown[]) : [];
 
     const questions = raw.slice(0, 10).map((item) => {
@@ -226,7 +229,7 @@ export const generateFlashcards = createServerFn({ method: "POST" })
     attachments: sanitizeAttachments(input?.attachments),
     count: Math.min(30, Math.max(5, Math.round(Number(input?.count) || 10))),
   }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     requireInput(data.text, data.attachments);
 
     const system = [
@@ -237,7 +240,10 @@ export const generateFlashcards = createServerFn({ method: "POST" })
       "hint is optional and very short; cover the whole material without duplicates; stay strictly on the given content.",
     ].join(" ");
 
-    const parsed = await callGateway(system, buildUserContent(data.text, data.attachments));
+    const parsed = await callGateway(
+      system,
+      await buildUserContent(data.text, data.attachments, context.supabase),
+    );
     const raw = Array.isArray(parsed["cards"]) ? (parsed["cards"] as unknown[]) : [];
 
     const cards = raw
@@ -285,7 +291,7 @@ export const generateQuiz = createServerFn({ method: "POST" })
       };
     },
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     requireInput(data.text, data.attachments);
 
     const system = [
@@ -297,7 +303,10 @@ export const generateQuiz = createServerFn({ method: "POST" })
       "explanation is one or two sentences justifying the answer; mix the types evenly; stay strictly on the given material.",
     ].join(" ");
 
-    const parsed = await callGateway(system, buildUserContent(data.text, data.attachments));
+    const parsed = await callGateway(
+      system,
+      await buildUserContent(data.text, data.attachments, context.supabase),
+    );
     const raw = Array.isArray(parsed["questions"]) ? (parsed["questions"] as unknown[]) : [];
 
     const questions = raw
