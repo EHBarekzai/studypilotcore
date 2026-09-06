@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useLogAiActivity } from "@/lib/data";
 import { useGenerateFlashcards } from "@/lib/tutor";
 import type { Flashcard } from "@/lib/tutor.functions";
 
@@ -64,6 +65,7 @@ function FlashcardsPage() {
   const [flipped, setFlipped] = useState(false);
 
   const generate = useGenerateFlashcards();
+  const logActivity = useLogAiActivity();
 
   const run = () => {
     if (generate.isPending) return;
@@ -75,6 +77,7 @@ function FlashcardsPage() {
           setTitle(data.title);
           setIndex(0);
           setFlipped(false);
+          logActivity.mutate({ kind: "flashcards", topic: data.title, total: data.cards.length });
         },
       },
     );
