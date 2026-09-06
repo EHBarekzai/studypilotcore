@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useLogAiActivity } from "@/lib/data";
 import { useSolveHomework } from "@/lib/tutor";
 
 const DESCRIPTION =
@@ -32,11 +33,22 @@ function HelperPage() {
   const [text, setText] = useState("");
   const uploads = useStudyUploads();
   const solve = useSolveHomework();
+  const logActivity = useLogAiActivity();
   const result = solve.data;
 
   const run = () => {
     if (solve.isPending) return;
-    solve.mutate({ text, attachments: toAttachments(uploads.files) });
+    solve.mutate(
+      { text, attachments: toAttachments(uploads.files) },
+      {
+        onSuccess: (data) =>
+          logActivity.mutate({
+            kind: "homework",
+            topic: (data as { subject?: string | null })?.subject ?? (text.slice(0, 80) || null),
+            total: 1,
+          }),
+      },
+    );
   };
 
   return (
