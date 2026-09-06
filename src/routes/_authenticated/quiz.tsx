@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
+import { useLogAiActivity } from "@/lib/data";
 import { titleCase } from "@/lib/study";
 import { useGenerateQuiz, useGradeShortAnswers, type QuizQuestionType } from "@/lib/tutor";
 import type { QuizQuestion } from "@/lib/tutor.functions";
@@ -64,6 +65,19 @@ function QuizPage() {
 
   const generate = useGenerateQuiz();
   const grade = useGradeShortAnswers();
+  const logActivity = useLogAiActivity();
+
+  /** Stores the graded quiz and records the attempt for progress analytics. */
+  const finishGrades = (next: Record<string, Grade>) => {
+    setGrades(next);
+    logActivity.mutate({
+      kind: "quiz",
+      topic: title,
+      score: Object.values(next).filter((g) => g.correct).length,
+      total: questions.length,
+      meta: { difficulty, types },
+    });
+  };
   const busy = generate.isPending || grade.isPending;
 
   const toggleType = (type: QuizQuestionType) => {
@@ -110,7 +124,7 @@ function QuizPage() {
     }
 
     if (!shortItems.length) {
-      setGrades(next);
+      finishGrades(next);
       return;
     }
 
@@ -125,9 +139,9 @@ function QuizPage() {
               feedback: found?.feedback ?? "Compare your answer with the model answer.",
             };
           }
-          setGrades(next);
+          finishGrades(next);
         },
-        onError: () => setGrades(next),
+        onError: () => finishGrades(next),
       },
     );
   };
