@@ -44,7 +44,7 @@ function HelperPage() {
         onSuccess: (data) =>
           logActivity.mutate({
             kind: "homework",
-            topic: (data as { subject?: string | null })?.subject ?? text.slice(0, 80) || null,
+            topic: (data as { subject?: string | null })?.subject ?? (text.slice(0, 80) || null),
             total: 1,
           }),
       },
