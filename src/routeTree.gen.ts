@@ -26,6 +26,7 @@ import { Route as AuthenticatedQuizRouteImport } from './routes/_authenticated/q
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSubjectsRouteImport } from './routes/_authenticated/subjects'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
+import { Route as ApiPublicWebhooksNoholdpayRouteImport } from './routes/api/public/webhooks/noholdpay'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -111,6 +112,12 @@ const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
   path: '/tasks',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicWebhooksNoholdpayRoute =
+  ApiPublicWebhooksNoholdpayRouteImport.update({
+    id: '/api/public/webhooks/noholdpay',
+    path: '/api/public/webhooks/noholdpay',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/subjects': typeof AuthenticatedSubjectsRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/api/public/webhooks/noholdpay': typeof ApiPublicWebhooksNoholdpayRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -147,6 +155,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/subjects': typeof AuthenticatedSubjectsRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/api/public/webhooks/noholdpay': typeof ApiPublicWebhooksNoholdpayRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -167,6 +176,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/subjects': typeof AuthenticatedSubjectsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
+  '/api/public/webhooks/noholdpay': typeof ApiPublicWebhooksNoholdpayRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/subjects'
     | '/tasks'
+    | '/api/public/webhooks/noholdpay'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/subjects'
     | '/tasks'
+    | '/api/public/webhooks/noholdpay'
   id:
     | '__root__'
     | '/'
@@ -224,6 +236,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/subjects'
     | '/_authenticated/tasks'
+    | '/api/public/webhooks/noholdpay'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -232,6 +245,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicWebhooksNoholdpayRoute: typeof ApiPublicWebhooksNoholdpayRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -355,6 +369,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTasksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/webhooks/noholdpay': {
+      id: '/api/public/webhooks/noholdpay'
+      path: '/api/public/webhooks/noholdpay'
+      fullPath: '/api/public/webhooks/noholdpay'
+      preLoaderRoute: typeof ApiPublicWebhooksNoholdpayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -397,6 +418,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicWebhooksNoholdpayRoute: ApiPublicWebhooksNoholdpayRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
