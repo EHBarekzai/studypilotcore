@@ -148,7 +148,13 @@ function ProgressPage() {
     .slice(0, 6)
     .map((s) => ({ name: s.name, value: s.minutes }));
 
-  function exportReport() {
+  async function exportReport() {
+    try {
+      await consumePdfExport();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export is not available on your plan.");
+      return;
+    }
     const ok = exportReportToPdf({
       title: "Study progress report",
       subtitle: rangeLabel,
