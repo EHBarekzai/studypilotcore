@@ -38,6 +38,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { buildAnalytics } from "@/lib/analytics";
 import { useAiActivity, useExams, useStudySessions, useSubjects, useTasks } from "@/lib/data";
 import { exportReportToPdf } from "@/lib/export-pdf";
+import { consumePdfExport } from "@/lib/billing.functions";
 import { colorClass, formatMinutes } from "@/lib/study";
 import { cn } from "@/lib/utils";
 
