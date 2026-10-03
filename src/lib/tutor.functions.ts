@@ -182,6 +182,10 @@ export const solveHomework = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data, context }) => {
     requireInput(data.text, data.attachments);
+    const { consumeUsage } = await import("./billing.server");
+    await consumeUsage(context.supabase, "homework");
+    const images = data.attachments.filter((a) => a.mimeType.startsWith("image/")).length;
+    if (images) await consumeUsage(context.supabase, "image_questions", images);
 
     const system = [
       "You are a patient tutor. Read the question(s) — including any in attached images or PDFs — and teach the solution.",
@@ -231,6 +235,8 @@ export const generateFlashcards = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data, context }) => {
     requireInput(data.text, data.attachments);
+    const { consumeUsage } = await import("./billing.server");
+    await consumeUsage(context.supabase, "flashcards", data.count);
 
     const system = [
       `You are a flashcard generator. Create exactly ${data.count} study flashcards from the material.`,
@@ -293,6 +299,11 @@ export const generateQuiz = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     requireInput(data.text, data.attachments);
+    const { consumeUsage, activePlanLimits } = await import("./billing.server");
+    const plan = await activePlanLimits(context.supabase, context.userId);
+    const perQuiz = Number(plan?.limits["quiz_questions"] ?? 0);
+    if (plan && perQuiz && data.count > perQuiz) data.count = perQuiz;
+    await consumeUsage(context.supabase, "quizzes");
 
     const system = [
       `You are an exam writer. Create exactly ${data.count} ${data.difficulty} questions from the material,`,
