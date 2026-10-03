@@ -79,6 +79,8 @@ export const generateStudyPlan = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) throw new Error("AI planner is not configured (missing LOVABLE_API_KEY).");
+    const { consumeUsage } = await import("./billing.server");
+    await consumeUsage(supabase, "ai_plans");
 
     const today = isoDate(new Date());
     const days = data.scope === "day" ? 1 : HORIZON_DAYS;
