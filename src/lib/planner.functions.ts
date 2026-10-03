@@ -261,6 +261,8 @@ export const smartReschedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
+    const { consumeUsage } = await import("./billing.server");
+    await consumeUsage(supabase, "reschedules");
     const today = isoDate(new Date());
 
     const [profileRes, sessionsRes, tasksRes, examsRes] = await Promise.all([
