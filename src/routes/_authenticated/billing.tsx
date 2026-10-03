@@ -103,7 +103,7 @@ function BillingPage() {
 
   if (query.isLoading) return <AppShell><LoadingState /></AppShell>;
   if (query.error || !query.data)
-    return <AppShell><ErrorState message={(query.error as Error)?.message ?? "Could not load billing."} onRetry={() => query.refetch()} /></AppShell>;
+    return <AppShell><ErrorState description={(query.error as Error)?.message ?? "Could not load billing."} onRetry={() => query.refetch()} /></AppShell>;
 
   const { subscription: sub, plans, usage, resetsAt, payments } = query.data;
   const current = plans.find((p) => p.id === sub?.plan_id);
