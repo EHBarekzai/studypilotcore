@@ -101,7 +101,7 @@ function BillingPage() {
     }
   }
 
-  if (query.isLoading) return <AppShell><LoadingState label="Loading your plan…" /></AppShell>;
+  if (query.isLoading) return <AppShell><LoadingState /></AppShell>;
   if (query.error || !query.data)
     return <AppShell><ErrorState message={(query.error as Error)?.message ?? "Could not load billing."} onRetry={() => query.refetch()} /></AppShell>;
 
