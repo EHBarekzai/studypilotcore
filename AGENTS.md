@@ -8,3 +8,9 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Architecture rules
+- Plan prices/limits live only in the `plans` table; server code and DB triggers read them (single source of truth, admin-editable).
+- Usage limits are enforced server-side via `consume_usage` RPC and insert triggers; never trust client checks.
+- Payment provider code is isolated in `src/lib/payments.server.ts` + `billing.server.ts`; subscriptions activate only after webhook + provider re-verification, so the gateway can be swapped.
+- Admin access requires owner email AND `super_admin` role, checked per request in `requireAdmin` middleware.
