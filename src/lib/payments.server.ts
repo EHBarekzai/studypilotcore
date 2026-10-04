@@ -98,7 +98,7 @@ async function activateFromPayment(paymentId: string) {
       user_id: claimed.user_id,
       plan_id: claimed.plan_id,
       status: "active",
-      started_at: renewing ? undefined : new Date(now).toISOString(),
+      ...(renewing ? {} : { started_at: new Date(now).toISOString() }),
       current_period_end: periodEnd,
       cancelled_at: null,
       last_payment_id: claimed.id,
@@ -181,7 +181,7 @@ export async function syncPayment(paymentRowId: string) {
 export async function handleWebhookEvent(event: {
   id: string;
   event: string;
-  data?: Record<string, unknown>;
+  data?: Record<string, unknown> | undefined;
 }) {
   const data = event.data ?? {};
   const providerId = String(data["payment_id"] ?? "");

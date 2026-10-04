@@ -379,8 +379,8 @@ export const adminGetSettings = createServerFn({ method: "GET" })
     const { data } = await context.admin.from("app_settings").select("key, value");
     const map = Object.fromEntries((data ?? []).map((r) => [r.key, r.value])) as Record<string, Record<string, unknown>>;
     return {
-      payments: map["payments"] ?? {},
-      system: map["system"] ?? {},
+      payments: (map["payments"] ?? {}) as { mode?: "test" | "live"; accepted_coins?: string[]; accepted_chains?: string[]; restrict_to_accepted?: boolean },
+      system: (map["system"] ?? {}) as { maintenance_message?: string },
       configured: {
         testKey: !!process.env["NOHOLDPAY_TEST_API_KEY"],
         liveKey: !!process.env["NOHOLDPAY_LIVE_API_KEY"],

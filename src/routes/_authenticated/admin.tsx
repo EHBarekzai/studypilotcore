@@ -495,7 +495,7 @@ function Notifications() {
   const q = useQuery({ queryKey: ["admin", "notifications"], queryFn: () => list() });
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const submit = async (payload: Parameters<typeof save>[0]["data"]) => {
+  const submit = async (payload: { id?: string; title?: string; body?: string; active?: boolean }) => {
     try { await save({ data: payload }); qc.invalidateQueries({ queryKey: ["admin", "notifications"] }); toast.success("Saved"); }
     catch (e) { toast.error(errMsg(e)); }
   };
