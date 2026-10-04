@@ -11,10 +11,12 @@ import {
   LogOut,
   Sparkles,
   Settings,
+  CreditCard,
+  Shield,
   TrendingUp,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Brand } from "@/components/brand";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -33,6 +35,7 @@ export const NAV_ITEMS = [
   { to: "/flashcards", label: "Cards", icon: Layers },
   { to: "/quiz", label: "Quiz", icon: CircleHelp },
   { to: "/progress", label: "Progress", icon: TrendingUp },
+  { to: "/billing", label: "Billing", icon: CreditCard },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
@@ -48,8 +51,35 @@ export function useSignOut() {
   };
 }
 
+function useShellInfo() {
+  return useQuery({
+    queryKey: ["shell-info"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return null;
+      const [roles, sub, notes] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", u.user.id),
+        supabase.from("subscriptions").select("status, current_period_end").eq("user_id", u.user.id).maybeSingle(),
+        supabase.from("notifications").select("id, title, body").order("created_at", { ascending: false }).limit(1),
+      ]);
+      const end = sub.data ? new Date(sub.data.current_period_end).getTime() : 0;
+      return {
+        isAdmin: (roles.data ?? []).some((r) => r.role === "super_admin"),
+        active: end > Date.now() && sub.data?.status !== "expired",
+        trialDaysLeft: sub.data?.status === "trial" ? Math.max(0, Math.ceil((end - Date.now()) / 86_400_000)) : null,
+        notice: notes.data?.[0] ?? null,
+      };
+    },
+  });
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const signOut = useSignOut();
+  const info = useShellInfo().data;
+  const items = info?.isAdmin
+    ? [...NAV_ITEMS, { to: "/admin", label: "Admin", icon: Shield } as const]
+    : NAV_ITEMS;
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,7 +89,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Brand />
         </Link>
         <nav className="mt-8 flex flex-1 flex-col gap-1">
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+          {items.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               to={to}
@@ -97,13 +127,30 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 lg:px-8 lg:pb-12">{children}</main>
+        <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 lg:px-8 lg:pb-12">
+          {info && !info.active && (
+            <Link to="/billing" className="mb-4 block rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              Your trial or plan has ended. Choose a plan to keep using AI tools and adding new items →
+            </Link>
+          )}
+          {info?.active && info.trialDaysLeft !== null && info.trialDaysLeft <= 3 && (
+            <Link to="/billing" className="mb-4 block rounded-xl border bg-primary-soft p-3 text-sm text-primary">
+              {info.trialDaysLeft} day{info.trialDaysLeft === 1 ? "" : "s"} left in your free trial — pick a plan →
+            </Link>
+          )}
+          {info?.notice && (
+            <div className="mb-4 rounded-xl border bg-muted/50 p-3 text-sm">
+              <span className="font-medium">{info.notice.title}</span> {info.notice.body}
+            </div>
+          )}
+          {children}
+        </main>
       </div>
 
       {/* Mobile bottom navigation */}
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 backdrop-blur lg:hidden">
         <ul className="flex snap-x overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+          {items.map(({ to, label, icon: Icon }) => (
             <li key={to} className="min-w-[4.25rem] flex-1 snap-start">
               <Link
                 to={to}

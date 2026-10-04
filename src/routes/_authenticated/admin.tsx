@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, RefreshCw, ShieldCheck } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
 
@@ -38,7 +38,7 @@ import {
   adminUserDetail,
 } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { PaymentBadge } from "./billing";
+import { PaymentBadge } from "@/components/payment-badge";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -336,7 +336,7 @@ function UserDialog({ userId, onClose }: { userId: string | null; onClose: () =>
   );
 }
 
-function Section({ title, empty, children }: { title: string; empty: boolean; children: React.ReactNode }) {
+function Section({ title, empty, children }: { title: string; empty: boolean; children: ReactNode }) {
   return (
     <div>
       <div className="mb-1 font-medium">{title}</div>
@@ -495,7 +495,7 @@ function Notifications() {
   const q = useQuery({ queryKey: ["admin", "notifications"], queryFn: () => list() });
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const submit = async (payload: Parameters<typeof save>[0]["data"]) => {
+  const submit = async (payload: { id?: string; title?: string; body?: string; active?: boolean }) => {
     try { await save({ data: payload }); qc.invalidateQueries({ queryKey: ["admin", "notifications"] }); toast.success("Saved"); }
     catch (e) { toast.error(errMsg(e)); }
   };

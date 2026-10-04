@@ -90,7 +90,7 @@ export async function noholdpayRequest<T>(
   const res = await fetch(`${NOHOLDPAY_API}${path}`, {
     method: init?.method ?? "GET",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: init?.body ? JSON.stringify(init.body) : undefined,
+    ...(init?.body ? { body: JSON.stringify(init.body) } : {}),
   });
   const text = await res.text();
   if (!res.ok) {
