@@ -12,9 +12,13 @@ export const Route = createFileRoute("/_authenticated")({
     if (location.pathname !== "/onboarding") {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("onboarding_completed")
+        .select("onboarding_completed, account_status")
         .eq("id", data.user.id)
         .maybeSingle();
+      if (profile && profile.account_status !== "active") {
+        await supabase.auth.signOut();
+        throw redirect({ to: "/auth" });
+      }
       if (profile && !profile.onboarding_completed) throw redirect({ to: "/onboarding" });
     }
 
