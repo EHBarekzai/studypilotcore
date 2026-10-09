@@ -31,6 +31,7 @@ import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
 import { PageHeader, StatCard } from "@/components/page-header";
+import { ProgressInsightsPanel } from "@/components/progress-insights";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -276,6 +277,8 @@ function ProgressPage() {
                 icon={<Target className="size-4" />}
               />
             </div>
+
+            <ProgressInsightsPanel analytics={analytics} />
 
             <Panel
               title="Study time trend"
