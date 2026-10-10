@@ -36,6 +36,9 @@ import {
   adminSetAccountStatus,
   adminUpdatePlan,
   adminUserDetail,
+  adminListRequests,
+  adminUpdateRequest,
+  adminRequestAttachment,
 } from "@/lib/admin.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { PaymentBadge } from "@/components/payment-badge";
@@ -68,12 +71,13 @@ function AdminPage() {
       <PageHeader title="Admin panel" description="Owner-only controls for StudyPilot." />
       <Tabs defaultValue="dashboard" className="mt-4">
         <TabsList className="flex h-auto flex-wrap justify-start">
-          {["dashboard", "users", "payments", "activity", "plans", "notifications", "audit", "settings"].map((t) => (
-            <TabsTrigger key={t} value={t} className="capitalize">{t === "audit" ? "Security & audit" : t}</TabsTrigger>
+          {["dashboard", "users", "requests", "payments", "activity", "plans", "notifications", "audit", "settings"].map((t) => (
+            <TabsTrigger key={t} value={t} className="capitalize">{t === "audit" ? "Security & audit" : t === "requests" ? "User requests" : t === "plans" ? "Plans & limits" : t}</TabsTrigger>
           ))}
         </TabsList>
         <TabsContent value="dashboard"><Dashboard /></TabsContent>
         <TabsContent value="users"><Users /></TabsContent>
+        <TabsContent value="requests"><Requests /></TabsContent>
         <TabsContent value="payments"><Payments /></TabsContent>
         <TabsContent value="activity"><Activity /></TabsContent>
         <TabsContent value="plans"><Plans /></TabsContent>
@@ -467,8 +471,12 @@ function Plans() {
             {p.id !== "trial" && (
               <div><Label>Monthly price (USD)</Label><Input value={drafts[p.id]?.price ?? ""} onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: { ...d[p.id]!, price: e.target.value } }))} /></div>
             )}
+            <SummarizerLimits
+              limits={drafts[p.id]?.limits ?? "{}"}
+              onChange={(limits) => setDrafts((d) => ({ ...d, [p.id]: { ...d[p.id]!, limits } }))}
+            />
             <div>
-              <Label>Limits (null = unlimited)</Label>
+              <Label>All limits (null = unlimited)</Label>
               <Textarea rows={10} className="font-mono text-xs" value={drafts[p.id]?.limits ?? ""} onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: { ...d[p.id]!, limits: e.target.value } }))} />
             </div>
             <Button size="sm" onClick={async () => {
@@ -483,6 +491,106 @@ function Plans() {
         </Card>
       ))}
     </div>
+  );
+}
+
+function SummarizerLimits({ limits, onChange }: { limits: string; onChange: (v: string) => void }) {
+  let obj: Record<string, unknown> = {};
+  try { obj = JSON.parse(limits) as Record<string, unknown>; } catch { return null; }
+  const set = (k: string, v: unknown) => onChange(JSON.stringify({ ...obj, [k]: v }, null, 2));
+  const num = (v: string) => (v.trim() === "" ? null : Math.max(0, Math.round(Number(v) || 0)));
+  return (
+    <div className="space-y-2 rounded-lg border p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium">PDF Summarizer</span>
+        <Switch checked={obj["pdf_summarizer"] === true} onCheckedChange={(v) => set("pdf_summarizer", v)} aria-label="PDF Summarizer access" />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div><Label className="text-xs">Summaries / cycle (blank = unlimited)</Label><Input type="number" min={0} value={obj["pdf_summaries"] == null ? "" : String(obj["pdf_summaries"])} onChange={(e) => set("pdf_summaries", num(e.target.value))} /></div>
+        <div><Label className="text-xs">Max PDF size (MB)</Label><Input type="number" min={1} max={50} value={obj["summary_file_mb"] == null ? "" : String(obj["summary_file_mb"])} onChange={(e) => set("summary_file_mb", num(e.target.value))} /></div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ user requests ------------------------------ */
+
+const REQ_STATUSES = [["new", "New"], ["in_review", "In Review"], ["planned", "Planned"], ["resolved", "Resolved"], ["rejected", "Rejected"]] as const;
+const REQ_CATEGORIES = [["suggestion", "Suggestion"], ["feature", "Feature request"], ["complaint", "Complaint"], ["bug", "Bug report"], ["feedback", "Feedback"]] as const;
+
+function Requests() {
+  const list = useServerFn(adminListRequests);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [category, setCategory] = useState("all");
+  const [sort, setSort] = useState<"newest" | "oldest">("newest");
+  const q = useQuery({ queryKey: ["admin", "requests", search, status, category, sort], queryFn: () => list({ data: { search, status, category, sort } }) });
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-2 sm:grid-cols-4">
+        <Input placeholder="Search name, email, subject…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All statuses</SelectItem>{REQ_STATUSES.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select>
+        <Select value={category} onValueChange={setCategory}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All categories</SelectItem>{REQ_CATEGORIES.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select>
+        <Select value={sort} onValueChange={(v) => setSort(v as "newest" | "oldest")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="newest">Newest first</SelectItem><SelectItem value="oldest">Oldest first</SelectItem></SelectContent></Select>
+      </div>
+      {q.isLoading ? <LoadingState /> : q.error ? <ErrorState title="Could not load requests" description={errMsg(q.error)} /> : !q.data?.length ? (
+        <EmptyState title="No requests" description="User submissions will appear here." />
+      ) : q.data.map((r) => <RequestCard key={r.id} r={r} />)}
+    </div>
+  );
+}
+
+type AdminRequest = Awaited<ReturnType<typeof adminListRequests>>[number];
+
+function RequestCard({ r }: { r: AdminRequest }) {
+  const qc = useQueryClient();
+  const update = useServerFn(adminUpdateRequest);
+  const attach = useServerFn(adminRequestAttachment);
+  const [reply, setReply] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const run = async (payload: { status?: (typeof REQ_STATUSES)[number][0]; reply?: string; note?: string }) => {
+    setBusy(true);
+    try { await update({ data: { id: r.id, ...payload } }); toast.success("Saved"); setReply(""); setNote(""); qc.invalidateQueries({ queryKey: ["admin", "requests"] }); }
+    catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
+  };
+  return (
+    <Card>
+      <CardContent className="space-y-3 p-4 text-sm">
+        <div className="border-b pb-2">
+          <div className="text-base font-semibold">{r.user_name}</div>
+          <div className="text-muted-foreground">{r.user_email}</div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">{REQ_CATEGORIES.find(([v]) => v === r.category)?.[1] ?? r.category}</Badge>
+          <span className="text-xs text-muted-foreground">{fmtDate(r.created_at)}</span>
+          <div className="ml-auto w-40">
+            <Select value={r.status} onValueChange={(v) => run({ status: v as (typeof REQ_STATUSES)[number][0] })} disabled={busy}>
+              <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>{REQ_STATUSES.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="font-medium">{r.subject}</div>
+        <p className="whitespace-pre-wrap text-muted-foreground">{r.message}</p>
+        {r.attachment_path && (
+          <Button size="sm" variant="outline" onClick={async () => { try { const { url } = await attach({ data: { id: r.id } }); window.open(url, "_blank", "noopener"); } catch (e) { toast.error(errMsg(e)); } }}>
+            Open attachment ({r.attachment_name ?? "file"})
+          </Button>
+        )}
+        {r.admin_reply && <div className="rounded-lg bg-muted/50 p-2"><span className="font-medium">Your reply:</span> {r.admin_reply}</div>}
+        {r.notes.length > 0 && (
+          <div className="space-y-1 rounded-lg border border-dashed p-2">
+            <div className="text-xs font-medium text-muted-foreground">Internal notes (private)</div>
+            {r.notes.map((n) => <div key={n.id} className="text-xs">{n.note} <span className="text-muted-foreground">— {fmtDate(n.created_at)}</span></div>)}
+          </div>
+        )}
+        <div className="grid gap-2 md:grid-cols-2">
+          <div className="space-y-1"><Textarea placeholder="Reply to user (they'll be notified)" value={reply} maxLength={5000} onChange={(e) => setReply(e.target.value)} /><Button size="sm" disabled={busy || !reply.trim()} onClick={() => run({ reply })}>Send reply</Button></div>
+          <div className="space-y-1"><Textarea placeholder="Private internal note" value={note} maxLength={5000} onChange={(e) => setNote(e.target.value)} /><Button size="sm" variant="outline" disabled={busy || !note.trim()} onClick={() => run({ note })}>Add note</Button></div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
