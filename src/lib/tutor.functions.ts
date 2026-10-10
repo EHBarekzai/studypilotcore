@@ -50,7 +50,7 @@ function gatewayErrorMessage(status: number, body: string) {
   return `AI request failed (${status}). ${body.slice(0, 160)}`;
 }
 
-function sanitizeText(value: unknown, max = MAX_TEXT_CHARS) {
+export function sanitizeText(value: unknown, max = MAX_TEXT_CHARS) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
@@ -107,7 +107,7 @@ async function storedDataUrl(client: StorageClient, path: string, mimeType: stri
   return `data:${mimeType};base64,${toBase64(buffer)}`;
 }
 
-async function buildUserContent(
+export async function buildUserContent(
   text: string,
   attachments: Attachment[],
   client: StorageClient,
@@ -126,7 +126,7 @@ async function buildUserContent(
 }
 
 
-async function callGateway(system: string, userContent: string | ContentPart[]) {
+export async function callGateway(system: string, userContent: string | ContentPart[]) {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("AI is not configured (missing LOVABLE_API_KEY).");
 

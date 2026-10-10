@@ -6,7 +6,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const OWNER_EMAIL = "erfanhussainbarekzai@gmail.com";
 
 /** Server-side admin gate: owner email AND super_admin role, verified per request. */
-const requireAdmin = createMiddleware({ type: "function" })
+export const requireAdmin = createMiddleware({ type: "function" })
   .middleware([requireSupabaseAuth])
   .server(async ({ next, context }) => {
     const email = String((context.claims as { email?: string }).email ?? "").toLowerCase();
