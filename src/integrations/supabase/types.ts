@@ -316,6 +316,36 @@ export type Database = {
           },
         ]
       }
+      pdf_summaries: {
+        Row: {
+          created_at: string
+          id: string
+          result: Json
+          scope: string | null
+          source_name: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          result?: Json
+          scope?: string | null
+          source_name?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          result?: Json
+          scope?: string | null
+          source_name?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       planned_sessions: {
         Row: {
           completed_at: string | null
@@ -768,6 +798,113 @@ export type Database = {
         }
         Relationships: []
       }
+      user_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_request_notes: {
+        Row: {
+          author_email: string | null
+          created_at: string
+          id: string
+          note: string
+          request_id: string
+        }
+        Insert: {
+          author_email?: string | null
+          created_at?: string
+          id?: string
+          note: string
+          request_id: string
+        }
+        Update: {
+          author_email?: string | null
+          created_at?: string
+          id?: string
+          note?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_request_notes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "user_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_requests: {
+        Row: {
+          admin_reply: string | null
+          attachment_name: string | null
+          attachment_path: string | null
+          category: string
+          created_at: string
+          id: string
+          message: string
+          replied_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_reply?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          category: string
+          created_at?: string
+          id?: string
+          message: string
+          replied_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_reply?: string | null
+          attachment_name?: string | null
+          attachment_path?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          message?: string
+          replied_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -794,6 +931,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      billing_cycle_start: { Args: { _user_id: string }; Returns: string }
+      consume_pdf_summary: { Args: { _size_bytes: number }; Returns: Json }
       consume_usage: {
         Args: { _amount?: number; _metric: string }
         Returns: Json
@@ -805,6 +944,11 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      pdf_summary_status: { Args: never; Returns: Json }
+      refund_pdf_summary: {
+        Args: { _period: string; _user_id: string }
+        Returns: undefined
       }
     }
     Enums: {
