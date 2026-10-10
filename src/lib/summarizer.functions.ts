@@ -131,7 +131,8 @@ export const summarizePdf = createServerFn({ method: "POST" })
       throw new Error("No summary could be produced from that document. Try another file.");
     }
 
-    await context.supabase.from("pdf_summaries").insert({
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("pdf_summaries").insert({
       user_id: context.userId,
       title: result.title,
       source_name: data.storagePath ? data.fileName : "Pasted text",
