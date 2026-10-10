@@ -192,6 +192,7 @@ function BillingPage() {
                     `${fmt(l["homework"])} AI homework requests`,
                     `${fmt(l["image_questions"])} image questions`,
                     `${fmt(l["pdfs"])} PDFs · ${fmt(l["file_mb"])}MB/file`,
+                    l["pdf_summarizer"] ? `${fmt(l["pdf_summaries"])} PDF summaries · ${fmt(l["summary_file_mb"])}MB/PDF` : "No PDF Summarizer",
                     `${fmt(l["flashcards"])} flashcards`,
                     `${fmt(l["quizzes"])} quizzes · ${fmt(l["quiz_questions"])} questions each`,
                     `${fmt(l["ai_plans"])} AI plans · ${fmt(l["reschedules"])} reschedules`,

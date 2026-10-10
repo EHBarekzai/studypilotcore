@@ -14,6 +14,8 @@ import {
   CreditCard,
   Shield,
   TrendingUp,
+  FileText,
+  MessageSquarePlus,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -34,8 +36,10 @@ export const NAV_ITEMS = [
   { to: "/helper", label: "Helper", icon: Brain },
   { to: "/flashcards", label: "Cards", icon: Layers },
   { to: "/quiz", label: "Quiz", icon: CircleHelp },
+  { to: "/summarizer", label: "Summarize", icon: FileText },
   { to: "/progress", label: "Progress", icon: TrendingUp },
   { to: "/billing", label: "Billing", icon: CreditCard },
+  { to: "/requests", label: "Requests", icon: MessageSquarePlus },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
@@ -58,10 +62,11 @@ function useShellInfo() {
     queryFn: async () => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) return null;
-      const [roles, sub, notes] = await Promise.all([
+      const [roles, sub, notes, personal] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", u.user.id),
         supabase.from("subscriptions").select("status, current_period_end").eq("user_id", u.user.id).maybeSingle(),
         supabase.from("notifications").select("id, title, body").order("created_at", { ascending: false }).limit(1),
+        supabase.from("user_notifications").select("id, title").is("read_at", null).order("created_at", { ascending: false }).limit(1),
       ]);
       const end = sub.data ? new Date(sub.data.current_period_end).getTime() : 0;
       return {
@@ -69,6 +74,7 @@ function useShellInfo() {
         active: end > Date.now() && sub.data?.status !== "expired",
         trialDaysLeft: sub.data?.status === "trial" ? Math.max(0, Math.ceil((end - Date.now()) / 86_400_000)) : null,
         notice: notes.data?.[0] ?? null,
+        personal: personal.data?.[0] ?? null,
       };
     },
   });
@@ -142,6 +148,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="mb-4 rounded-xl border bg-muted/50 p-3 text-sm">
               <span className="font-medium">{info.notice.title}</span> {info.notice.body}
             </div>
+          )}
+          {info?.personal && (
+            <Link to="/requests" className="mb-4 block rounded-xl border border-primary/30 bg-primary-soft p-3 text-sm text-primary">
+              <span className="font-medium">{info.personal.title}</span> — view your requests
+            </Link>
           )}
           {children}
         </main>
