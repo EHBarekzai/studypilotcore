@@ -415,3 +415,88 @@ export const adminSaveSettings = createServerFn({ method: "POST" })
     await log(context, "settings.updated", { details: data });
     return { ok: true };
   });
+
+/* ------------------------------- user requests ----------------------------- */
+
+const REQUEST_STATUSES = ["new", "in_review", "planned", "resolved", "rejected"] as const;
+const STATUS_LABEL: Record<(typeof REQUEST_STATUSES)[number], string> = {
+  new: "New", in_review: "In Review", planned: "Planned", resolved: "Resolved", rejected: "Rejected",
+};
+
+export const adminListRequests = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .inputValidator((i: unknown) =>
+    z.object({
+      search: z.string().max(200).default(""),
+      status: z.string().max(20).default("all"),
+      category: z.string().max(20).default("all"),
+      sort: z.enum(["newest", "oldest"]).default("newest"),
+    }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    let q = context.admin.from("user_requests").select("*").order("created_at", { ascending: data.sort === "oldest" }).limit(500);
+    if (data.status !== "all") q = q.eq("status", data.status);
+    if (data.category !== "all") q = q.eq("category", data.category);
+    const rows = (await q).data ?? [];
+    const ids = [...new Set(rows.map((r) => r.user_id))];
+    const [emails, profiles, notes] = await Promise.all([
+      emailMap(context.admin),
+      ids.length ? context.admin.from("profiles").select("id, full_name").in("id", ids) : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
+      rows.length ? context.admin.from("user_request_notes").select("*").in("request_id", rows.map((r) => r.id)).order("created_at") : Promise.resolve({ data: [] as { id: string; request_id: string; author_email: string | null; note: string; created_at: string }[] }),
+    ]);
+    const names = new Map((profiles.data ?? []).map((p) => [p.id, p.full_name ?? ""]));
+    const s = data.search.trim().toLowerCase();
+    return rows
+      .map((r) => ({
+        ...r,
+        user_name: names.get(r.user_id) || "Unnamed user",
+        user_email: emails.get(r.user_id)?.email ?? "",
+        notes: (notes.data ?? []).filter((n) => n.request_id === r.id),
+      }))
+      .filter((r) => !s || [r.subject, r.message, r.user_name, r.user_email].some((v) => v.toLowerCase().includes(s)));
+  });
+
+export const adminUpdateRequest = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .inputValidator((i: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      status: z.enum(REQUEST_STATUSES).optional(),
+      reply: z.string().trim().max(5000).optional(),
+      note: z.string().trim().max(5000).optional(),
+    }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: req } = await context.admin.from("user_requests").select("id, user_id, subject, status").eq("id", data.id).maybeSingle();
+    if (!req) throw new Error("Request not found.");
+    const patch: { status?: string; admin_reply?: string; replied_at?: string } = {};
+    if (data.status && data.status !== req.status) patch.status = data.status;
+    if (data.reply) { patch.admin_reply = data.reply; patch.replied_at = new Date().toISOString(); }
+    if (Object.keys(patch).length) {
+      const { error } = await context.admin.from("user_requests").update(patch).eq("id", data.id);
+      if (error) throw new Error(error.message);
+      const parts = [patch.status ? `status changed to ${STATUS_LABEL[patch.status as keyof typeof STATUS_LABEL]}` : "", patch.admin_reply ? "new reply" : ""].filter(Boolean);
+      await context.admin.from("user_notifications").insert({
+        user_id: req.user_id,
+        title: `Update on "${req.subject.slice(0, 80)}": ${parts.join(" and ")}`,
+        body: patch.admin_reply?.slice(0, 300) ?? "",
+        link: "/requests",
+      });
+    }
+    if (data.note) {
+      await context.admin.from("user_request_notes").insert({ request_id: data.id, author_email: context.adminEmail, note: data.note });
+    }
+    await log(context, "request.updated", { target_user_id: req.user_id, details: { id: data.id, ...patch, note: !!data.note } });
+    return { ok: true };
+  });
+
+export const adminRequestAttachment = createServerFn({ method: "POST" })
+  .middleware([requireAdmin])
+  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: req } = await context.admin.from("user_requests").select("attachment_path").eq("id", data.id).maybeSingle();
+    if (!req?.attachment_path) throw new Error("No attachment.");
+    const { data: signed, error } = await context.admin.storage.from("request-attachments").createSignedUrl(req.attachment_path, 300);
+    if (error || !signed) throw new Error("Could not open the attachment.");
+    return { url: signed.signedUrl };
+  });
