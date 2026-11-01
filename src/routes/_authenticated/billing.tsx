@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { SummarizerQuota } from "@/components/summarizer-quota";
 import { AppShell } from "@/components/app-shell";
 import { PageHeader } from "@/components/page-header";
 import { ErrorState, LoadingState } from "@/components/states";
@@ -151,6 +152,7 @@ function BillingPage() {
             <p className="text-sm text-muted-foreground">Resets {new Date(resetsAt).toLocaleDateString()}</p>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
+            <SummarizerQuota />
             {METRICS.map((m) => {
               const used = usage[m.key] ?? 0;
               const limit = limits[m.key];

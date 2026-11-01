@@ -25,8 +25,10 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedPlanRouteImport } from './routes/_authenticated/plan'
 import { Route as AuthenticatedProgressRouteImport } from './routes/_authenticated/progress'
 import { Route as AuthenticatedQuizRouteImport } from './routes/_authenticated/quiz'
+import { Route as AuthenticatedRequestsRouteImport } from './routes/_authenticated/requests'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSubjectsRouteImport } from './routes/_authenticated/subjects'
+import { Route as AuthenticatedSummarizerRouteImport } from './routes/_authenticated/summarizer'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as ApiPublicWebhooksNoholdpayRouteImport } from './routes/api/public/webhooks/noholdpay'
 
@@ -109,6 +111,11 @@ const AuthenticatedQuizRoute = AuthenticatedQuizRouteImport.update({
   path: '/quiz',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRequestsRoute = AuthenticatedRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -117,6 +124,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
 const AuthenticatedSubjectsRoute = AuthenticatedSubjectsRouteImport.update({
   id: '/subjects',
   path: '/subjects',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSummarizerRoute = AuthenticatedSummarizerRouteImport.update({
+  id: '/summarizer',
+  path: '/summarizer',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
@@ -147,8 +159,10 @@ export interface FileRoutesByFullPath {
   '/plan': typeof AuthenticatedPlanRoute
   '/progress': typeof AuthenticatedProgressRoute
   '/quiz': typeof AuthenticatedQuizRoute
+  '/requests': typeof AuthenticatedRequestsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/subjects': typeof AuthenticatedSubjectsRoute
+  '/summarizer': typeof AuthenticatedSummarizerRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/api/public/webhooks/noholdpay': typeof ApiPublicWebhooksNoholdpayRoute
 }
@@ -168,8 +182,10 @@ export interface FileRoutesByTo {
   '/plan': typeof AuthenticatedPlanRoute
   '/progress': typeof AuthenticatedProgressRoute
   '/quiz': typeof AuthenticatedQuizRoute
+  '/requests': typeof AuthenticatedRequestsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/subjects': typeof AuthenticatedSubjectsRoute
+  '/summarizer': typeof AuthenticatedSummarizerRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/api/public/webhooks/noholdpay': typeof ApiPublicWebhooksNoholdpayRoute
 }
@@ -191,8 +207,10 @@ export interface FileRoutesById {
   '/_authenticated/plan': typeof AuthenticatedPlanRoute
   '/_authenticated/progress': typeof AuthenticatedProgressRoute
   '/_authenticated/quiz': typeof AuthenticatedQuizRoute
+  '/_authenticated/requests': typeof AuthenticatedRequestsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/subjects': typeof AuthenticatedSubjectsRoute
+  '/_authenticated/summarizer': typeof AuthenticatedSummarizerRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/api/public/webhooks/noholdpay': typeof ApiPublicWebhooksNoholdpayRoute
 }
@@ -214,8 +232,10 @@ export interface FileRouteTypes {
     | '/plan'
     | '/progress'
     | '/quiz'
+    | '/requests'
     | '/settings'
     | '/subjects'
+    | '/summarizer'
     | '/tasks'
     | '/api/public/webhooks/noholdpay'
   fileRoutesByTo: FileRoutesByTo
@@ -235,8 +255,10 @@ export interface FileRouteTypes {
     | '/plan'
     | '/progress'
     | '/quiz'
+    | '/requests'
     | '/settings'
     | '/subjects'
+    | '/summarizer'
     | '/tasks'
     | '/api/public/webhooks/noholdpay'
   id:
@@ -257,8 +279,10 @@ export interface FileRouteTypes {
     | '/_authenticated/plan'
     | '/_authenticated/progress'
     | '/_authenticated/quiz'
+    | '/_authenticated/requests'
     | '/_authenticated/settings'
     | '/_authenticated/subjects'
+    | '/_authenticated/summarizer'
     | '/_authenticated/tasks'
     | '/api/public/webhooks/noholdpay'
   fileRoutesById: FileRoutesById
@@ -386,6 +410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedQuizRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/requests': {
+      id: '/_authenticated/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof AuthenticatedRequestsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings': {
       id: '/_authenticated/settings'
       path: '/settings'
@@ -398,6 +429,13 @@ declare module '@tanstack/react-router' {
       path: '/subjects'
       fullPath: '/subjects'
       preLoaderRoute: typeof AuthenticatedSubjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/summarizer': {
+      id: '/_authenticated/summarizer'
+      path: '/summarizer'
+      fullPath: '/summarizer'
+      preLoaderRoute: typeof AuthenticatedSummarizerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tasks': {
@@ -429,8 +467,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPlanRoute: typeof AuthenticatedPlanRoute
   AuthenticatedProgressRoute: typeof AuthenticatedProgressRoute
   AuthenticatedQuizRoute: typeof AuthenticatedQuizRoute
+  AuthenticatedRequestsRoute: typeof AuthenticatedRequestsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSubjectsRoute: typeof AuthenticatedSubjectsRoute
+  AuthenticatedSummarizerRoute: typeof AuthenticatedSummarizerRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
 }
 
@@ -446,8 +486,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPlanRoute: AuthenticatedPlanRoute,
   AuthenticatedProgressRoute: AuthenticatedProgressRoute,
   AuthenticatedQuizRoute: AuthenticatedQuizRoute,
+  AuthenticatedRequestsRoute: AuthenticatedRequestsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSubjectsRoute: AuthenticatedSubjectsRoute,
+  AuthenticatedSummarizerRoute: AuthenticatedSummarizerRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
 }
 
