@@ -132,7 +132,7 @@ type ProviderPayment = {
  * Re-fetches the payment from NoHoldPay (never trusting the webhook body or a
  * browser redirect alone), stores the verified state, and activates on paid.
  */
-export async function syncPayment(paymentRowId: string) {
+export async function syncPayment(paymentRowId: string, opts: { fromConfirmedWebhook?: boolean } = {}) {
   const { data: row } = await supabaseAdmin.from("payments").select("*").eq("id", paymentRowId).single();
   if (!row?.provider_payment_id) return row;
   const remote = await noholdpayRequest<ProviderPayment>(
@@ -166,7 +166,8 @@ export async function syncPayment(paymentRowId: string) {
       paid_at: paid && !row.paid_at ? new Date().toISOString() : row.paid_at,
     })
     .eq("id", row.id);
-  if (paid) await activateFromPayment(row.id);
+  // Access is granted only from a verified payment.confirmed webhook (re-checked with the provider).
+  if (paid && opts.fromConfirmedWebhook) await activateFromPayment(row.id);
   if (status === "failed" && row.activated_at) {
     await audit({
       category: "security",
@@ -216,7 +217,7 @@ export async function handleWebhookEvent(event: {
         .eq("id", payment.id)
         .not("status", "in", "(paid,overpaid)");
     } else {
-      await syncPayment(payment.id);
+      await syncPayment(payment.id, { fromConfirmedWebhook: event.event === "payment.confirmed" });
     }
     await supabaseAdmin.from("payment_events").update({ processed: true, payment_id: payment.id }).eq("id", inserted!.id);
     await audit({ category: "payment", action: event.event, details: { payment_id: payment.id, event_id: event.id } });

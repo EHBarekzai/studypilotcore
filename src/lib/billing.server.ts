@@ -75,7 +75,7 @@ export function noholdpayKey(mode: "test" | "live") {
 }
 
 export function noholdpayWebhookSecrets() {
-  return [process.env["NOHOLDPAY_TEST_WEBHOOK_SECRET"], process.env["NOHOLDPAY_LIVE_WEBHOOK_SECRET"]].filter(
+  return [process.env["NOHOLDPAY_TEST_WEBHOOK_SECRET"]].filter(
     (s): s is string => !!s,
   );
 }

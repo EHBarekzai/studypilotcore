@@ -62,7 +62,8 @@ export const createCheckout = createServerFn({ method: "POST" })
       accepted_chains?: string[];
       restrict_to_accepted?: boolean;
     };
-    const mode = cfg.mode === "live" ? "live" : "test";
+    // TEST mode only for now: live keys and mainnet payments are never used.
+    const mode = "test" as const;
 
     // Reuse a still-open checkout for the same plan to avoid duplicate orders.
     const { data: open } = await supabaseAdmin
