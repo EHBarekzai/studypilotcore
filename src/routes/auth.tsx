@@ -40,16 +40,17 @@ function AuthPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-5">
+      <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-10">
         <Link to="/">
           <Brand />
         </Link>
         <ThemeToggle />
       </header>
 
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 pb-16">
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 pb-16">
         <div className="account-form">
-          <h1 className="text-2xl font-semibold">Welcome to StudyPilot</h1>
+          <p className="mb-3 text-xs font-medium uppercase tracking-widest text-muted-foreground">Your study workspace</p>
+          <h1 className="font-editorial text-4xl">Welcome to StudyPilot.</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Your subjects, tasks and exams — one calm plan.
           </p>
