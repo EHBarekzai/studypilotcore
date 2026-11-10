@@ -23,6 +23,8 @@ export const Route = createFileRoute("/auth")({
         property: "og:description",
         content: "Sign in or create your free StudyPilot account to plan your study week.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,
@@ -46,7 +48,7 @@ function AuthPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 pb-16">
-        <div className="surface-card p-6">
+        <div className="account-form">
           <h1 className="text-2xl font-semibold">Welcome to StudyPilot</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Your subjects, tasks and exams — one calm plan.

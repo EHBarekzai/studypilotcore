@@ -19,6 +19,8 @@ export const Route = createFileRoute("/reset-password")({
         property: "og:description",
         content: "Set a new password for your StudyPilot account.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ResetPassword,
@@ -59,7 +61,7 @@ function ResetPassword() {
         </Link>
       </header>
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 pb-16">
-        <div className="surface-card p-6">
+        <div className="account-form">
           <h1 className="text-2xl font-semibold">New password</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Open this page from the reset link in your email, then choose a new password.
