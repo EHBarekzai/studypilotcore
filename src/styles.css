@@ -159,7 +159,7 @@ section.surface-card {
 @media (max-width: 639px) {
   .landing-cover { min-height: 550px; }
   .landing-cover-image { object-position: 68% center; }
-  .landing-cover-content { background: var(--cover-veil); }
+  .landing-cover::after { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--cover-veil); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
