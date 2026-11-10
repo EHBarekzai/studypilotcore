@@ -76,7 +76,7 @@ const CHART_COLORS = [
 const tooltipStyle = {
   background: "var(--popover)",
   border: "1px solid var(--border)",
-  borderRadius: 12,
+  borderRadius: 6,
   color: "var(--popover-foreground)",
   fontSize: 12,
 };
@@ -87,7 +87,7 @@ function Delta({ value, suffix = "vs previous" }: { value: number; suffix?: stri
     <span
       className={cn(
         "inline-flex items-center gap-1 text-xs font-medium",
-        up ? "text-emerald-600 dark:text-emerald-400" : "text-destructive",
+        up ? "text-success" : "text-destructive",
       )}
     >
       {up ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}

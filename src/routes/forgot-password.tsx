@@ -18,6 +18,8 @@ export const Route = createFileRoute("/forgot-password")({
         property: "og:description",
         content: "Request a password reset link for your StudyPilot account.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ForgotPassword,
@@ -48,7 +50,7 @@ function ForgotPassword() {
         </Link>
       </header>
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 pb-16">
-        <div className="surface-card p-6">
+        <div className="account-form">
           <h1 className="text-2xl font-semibold">Forgot password</h1>
           {sent ? (
             <p className="mt-3 text-sm text-muted-foreground">
