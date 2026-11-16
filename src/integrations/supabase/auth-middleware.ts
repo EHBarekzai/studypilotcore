@@ -33,8 +33,15 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
     
-    const SUPABASE_URL = process.env['SUPABASE_URL'];
-    const SUPABASE_PUBLISHABLE_KEY = process.env['SUPABASE_PUBLISHABLE_KEY'];
+    // Fall back to the VITE_ names (baked in at build time) so hosts that only
+    // define VITE_SUPABASE_* (e.g. Netlify) still work on the server.
+    const env = typeof process !== 'undefined' ? process.env : ({} as Record<string, string | undefined>);
+    const SUPABASE_URL =
+      env['SUPABASE_URL'] || env['VITE_SUPABASE_URL'] || import.meta.env['VITE_SUPABASE_URL'];
+    const SUPABASE_PUBLISHABLE_KEY =
+      env['SUPABASE_PUBLISHABLE_KEY'] ||
+      env['VITE_SUPABASE_PUBLISHABLE_KEY'] ||
+      import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'];
 
     if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
       const missing = [
