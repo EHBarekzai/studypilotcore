@@ -72,7 +72,7 @@ function useShellInfo() {
       ]);
       const end = sub.data ? new Date(sub.data.current_period_end).getTime() : 0;
       return {
-        isAdmin: (roles.data ?? []).some((r) => r.role === "super_admin"),
+        isAdmin: u.user.email?.toLowerCase() === "erfanhussainbarekzai@gmail.com" && (roles.data ?? []).some((r) => r.role === "super_admin"),
         active: end > Date.now() && sub.data?.status !== "expired",
         trialDaysLeft: sub.data?.status === "trial" ? Math.max(0, Math.ceil((end - Date.now()) / 86_400_000)) : null,
         notice: notes.data?.[0] ?? null,

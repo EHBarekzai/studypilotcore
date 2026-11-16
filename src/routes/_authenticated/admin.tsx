@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, RefreshCw, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -55,6 +55,13 @@ export const Route = createFileRoute("/_authenticated/admin")({
       { name: "robots", content: "noindex" },
     ],
   }),
+  beforeLoad: async () => {
+    const { data } = await supabase.auth.getUser();
+    const user = data.user;
+    if (!user || user.email?.toLowerCase() !== "erfanhussainbarekzai@gmail.com") throw redirect({ to: "/dashboard" });
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+    if (!(roles ?? []).some((r) => r.role === "super_admin")) throw redirect({ to: "/dashboard" });
+  },
   component: AdminPage,
 });
 
