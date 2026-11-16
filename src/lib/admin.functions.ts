@@ -9,11 +9,16 @@ const OWNER_EMAIL = "erfanhussainbarekzai@gmail.com";
 export const requireAdmin = createMiddleware({ type: "function" })
   .middleware([requireSupabaseAuth])
   .server(async ({ next, context }) => {
-    const email = String((context.claims as { email?: string }).email ?? "").toLowerCase();
-    const { data: isSuper } = await context.supabase.rpc("has_role", {
+    let email = String((context.claims as { email?: string }).email ?? "").toLowerCase();
+    if (!email) {
+      const { data: u } = await context.supabase.auth.getUser();
+      email = String(u.user?.email ?? "").toLowerCase();
+    }
+    const { data: isSuper, error: roleError } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
       _role: "super_admin",
     });
+    if (roleError) console.error("[admin] role check failed", roleError.message);
     if (email !== OWNER_EMAIL || !isSuper) {
       const { audit } = await import("./payments.server");
       await audit({ category: "security", action: "admin.access_denied", actor_id: context.userId, actor_email: email });

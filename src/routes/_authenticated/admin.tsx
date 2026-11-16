@@ -72,7 +72,7 @@ function AdminPage() {
   const check = useServerFn(adminCheck);
   const q = useQuery({ queryKey: ["admin", "check"], queryFn: () => check(), retry: false });
   if (q.isLoading) return <AppShell><LoadingState /></AppShell>;
-  if (q.error) return <AppShell><ErrorState title="Admins only" description="This area is restricted to the StudyPilot owner." /></AppShell>;
+  if (q.error) return <AppShell><ErrorState title="Admins only" description={`This area is restricted to the StudyPilot owner. (${errMsg(q.error)})`} /></AppShell>;
   return (
     <AppShell>
       <PageHeader title="Admin panel" description="Owner-only controls for StudyPilot." />
