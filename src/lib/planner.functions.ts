@@ -4,7 +4,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 /* ----------------------------- shared helpers ------------------------------ */
 
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
-const MODEL = "google/gemini-2.5-flash";
 const HORIZON_DAYS = 7;
 
 export type PlannerScope = "day" | "week";
@@ -59,14 +58,6 @@ function toMinutes(time?: string | null) {
 }
 
 /** Human-readable message for a Lovable AI Gateway failure status. */
-function gatewayErrorMessage(status: number, body: string) {
-  if (status === 402) return "The workspace is out of AI credits. Top up in Lovable to keep planning.";
-  if (status === 403) return "Lovable AI is disabled or blocked for this workspace.";
-  if (status === 429) return "The AI planner is rate limited right now. Try again in a moment.";
-  if (status >= 500) return "The AI planner is temporarily unavailable. Please retry.";
-  if (status === 401) return "AI planner is not configured correctly (missing API key).";
-  return `AI planner request failed (${status}). ${body.slice(0, 160)}`;
-}
 
 /* ------------------------------ AI generation ------------------------------ */
 
@@ -77,8 +68,6 @@ export const generateStudyPlan = createServerFn({ method: "POST" })
   }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const apiKey = process.env["LOVABLE_API_KEY"];
-    if (!apiKey) throw new Error("AI planner is not configured (missing LOVABLE_API_KEY).");
     const { consumeUsage } = await import("./billing.server");
     await consumeUsage(supabase, "ai_plans");
 
@@ -159,42 +148,10 @@ export const generateStudyPlan = createServerFn({ method: "POST" })
       "subject/task/exam must copy an exact name from the input or be omitted; keep titles under 60 chars.",
     ].join(" ");
 
-    let response: Response;
-    try {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: MODEL,
-          temperature: 0.2,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: system },
-            { role: "user", content: JSON.stringify(payload) },
-          ],
-        }),
-      });
-    } catch {
-      throw new Error("Could not reach the AI planner. Check your connection and retry.");
-    }
-
-    if (!response.ok) {
-      const body = await response.text();
-      console.error(`[planner] gateway ${response.status}: ${body.slice(0, 500)}`);
-      throw new Error(gatewayErrorMessage(response.status, body));
-    }
-
-    const completion = (await response.json()) as {
-      choices?: { message?: { content?: string } }[];
+    const { aiChatJson } = await import("./ai.server");
+    const parsed = (await aiChatJson(system, JSON.stringify(payload), "planner")) as {
+      sessions?: GeneratedSession[];
     };
-    const content = completion.choices?.[0]?.message?.content ?? "";
-
-    let parsed: { sessions?: GeneratedSession[] };
-    try {
-      parsed = JSON.parse(content) as { sessions?: GeneratedSession[] };
-    } catch {
-      throw new Error("The AI planner returned an unreadable plan. Please retry.");
-    }
 
     const subjectByName = new Map(subjects.map((s) => [s.name.toLowerCase(), s.id]));
     const taskByTitle = new Map(tasks.map((t) => [t.title.toLowerCase(), t]));

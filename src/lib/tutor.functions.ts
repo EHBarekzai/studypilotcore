@@ -4,10 +4,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 /**
  * Server-side AI helpers for Homework Helper, Flashcards and Quiz generation.
- * LOVABLE_API_KEY is read inside handlers only — it never reaches the browser.
+ * The OpenRouter key is read server-side only — it never reaches the browser.
  */
 
-const MODEL = "google/gemini-3.7-flash";
 const MAX_ATTACHMENTS = 4;
 /** Inline data URLs stay small; bigger files travel through private storage. */
 const MAX_ATTACHMENT_CHARS = 4_500_000; // ~3MB binary as base64
@@ -40,15 +39,6 @@ export type QuizQuestion = {
 };
 
 export type SolutionStep = { title: string; detail: string };
-
-function gatewayErrorMessage(status: number, body: string) {
-  if (status === 402) return "The workspace is out of AI credits. Top up in Lovable to continue.";
-  if (status === 403) return "Lovable AI is disabled or blocked for this workspace.";
-  if (status === 429) return "AI is rate limited right now. Wait a moment and retry.";
-  if (status === 401) return "AI is not configured correctly (missing API key).";
-  if (status >= 500) return "AI is temporarily unavailable. Please retry.";
-  return `AI request failed (${status}). ${body.slice(0, 160)}`;
-}
 
 export function sanitizeText(value: unknown, max = MAX_TEXT_CHARS) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -127,43 +117,8 @@ export async function buildUserContent(
 
 
 export async function callGateway(system: string, userContent: string | ContentPart[]) {
-  const apiKey = process.env["LOVABLE_API_KEY"];
-  if (!apiKey) throw new Error("AI is not configured (missing LOVABLE_API_KEY).");
-
-  let response: Response;
-  try {
-    response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 0.2,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: userContent },
-        ],
-      }),
-    });
-  } catch {
-    throw new Error("Could not reach the AI service. Check your connection and retry.");
-  }
-
-  if (!response.ok) {
-    const body = await response.text();
-    console.error(`[tutor] gateway ${response.status}: ${body.slice(0, 500)}`);
-    throw new Error(gatewayErrorMessage(response.status, body));
-  }
-
-  const completion = (await response.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
-  const content = completion.choices?.[0]?.message?.content ?? "";
-  try {
-    return JSON.parse(content) as Record<string, unknown>;
-  } catch {
-    throw new Error("The AI returned an unreadable response. Please retry.");
-  }
+  const { aiChatJson } = await import("./ai.server");
+  return aiChatJson(system, userContent, "tutor");
 }
 
 function requireInput(text: string, attachments: Attachment[]) {
