@@ -166,8 +166,10 @@ export async function syncPayment(paymentRowId: string, opts: { fromConfirmedWeb
       paid_at: paid && !row.paid_at ? new Date().toISOString() : row.paid_at,
     })
     .eq("id", row.id);
-  // Access is granted only from a verified payment.confirmed webhook (re-checked with the provider).
-  if (paid && opts.fromConfirmedWebhook) await activateFromPayment(row.id);
+  // Access is granted only when NoHoldPay's own API (server-to-server) reports the payment confirmed,
+  // whether triggered by a signed webhook or by the return page re-checking the order.
+  const providerConfirmed = remote.status === "confirmed" || remote.status === "overpaid";
+  if (paid && (opts.fromConfirmedWebhook || providerConfirmed)) await activateFromPayment(row.id);
   if (status === "failed" && row.activated_at) {
     await audit({
       category: "security",
