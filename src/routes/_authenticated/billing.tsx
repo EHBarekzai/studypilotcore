@@ -78,6 +78,7 @@ function BillingPage() {
     setBusy(planId);
     try {
       const res = await checkoutFn({ data: { planId } });
+      if (!/^https?:\/\//i.test(res.checkoutUrl ?? "")) throw new Error("The payment provider did not return a checkout link.");
       window.location.href = res.checkoutUrl;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not start checkout.");

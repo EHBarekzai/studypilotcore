@@ -40,6 +40,50 @@ export const getBillingOverview = createServerFn({ method: "GET" })
     };
   });
 
+/**
+ * NoHoldPay has returned the hosted checkout link under different field names
+ * depending on mode/version, sometimes nested. Read it defensively so the
+ * browser is never sent to a missing URL.
+ */
+const CHECKOUT_URL_KEYS = [
+  "checkout_url",
+  "checkoutUrl",
+  "payment_url",
+  "paymentUrl",
+  "hosted_url",
+  "hostedUrl",
+  "pay_url",
+  "invoice_url",
+  "redirect_url",
+  "url",
+];
+const PROVIDER_ID_KEYS = ["id", "payment_id", "provider_payment_id", "uuid"];
+
+function flattenProviderResponse(remote: unknown): Record<string, unknown> {
+  const root = (remote && typeof remote === "object" ? remote : {}) as Record<string, unknown>;
+  const nested = (root["data"] && typeof root["data"] === "object" ? root["data"] : {}) as Record<string, unknown>;
+  const payment = (root["payment"] && typeof root["payment"] === "object" ? root["payment"] : {}) as Record<string, unknown>;
+  return { ...nested, ...payment, ...root };
+}
+
+function pickString(obj: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = obj[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  }
+  return null;
+}
+
+function isSafeHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 /** Creates a unique order + NoHoldPay payment and returns the hosted checkout URL. */
 export const createCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -101,7 +145,7 @@ export const createCheckout = createServerFn({ method: "POST" })
     try {
       const coins = cfg.accepted_coins?.filter(Boolean) ?? [];
       const chains = cfg.accepted_chains?.filter(Boolean) ?? [];
-      const remote = await noholdpayRequest<{ id: string; checkout_url: string; status: string }>(mode, "/payments", {
+      const remote = await noholdpayRequest<unknown>(mode, "/payments", {
         method: "POST",
         body: {
           fiat_amount: amount,
@@ -116,12 +160,20 @@ export const createCheckout = createServerFn({ method: "POST" })
           ...((coins.length || chains.length) && cfg.restrict_to_accepted ? { restrict_to_accepted: true } : {}),
         },
       });
+      const flat = flattenProviderResponse(remote);
+      const checkoutUrl = pickString(flat, CHECKOUT_URL_KEYS);
+      const providerPaymentId = pickString(flat, PROVIDER_ID_KEYS);
+      if (!checkoutUrl || !isSafeHttpUrl(checkoutUrl)) {
+        throw new Error(
+          `NoHoldPay did not return a usable checkout link. Provider response: ${JSON.stringify(remote).slice(0, 400)}`,
+        );
+      }
       await supabaseAdmin
         .from("payments")
-        .update({ provider_payment_id: remote.id, checkout_url: remote.checkout_url })
+        .update({ provider_payment_id: providerPaymentId, checkout_url: checkoutUrl })
         .eq("id", row.id);
       await audit({ category: "payment", action: "checkout.created", actor_id: context.userId, target_user_id: context.userId, details: { order_id: orderId, plan: plan.id, mode } });
-      return { checkoutUrl: remote.checkout_url, orderId };
+      return { checkoutUrl, orderId };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Checkout failed";
       await supabaseAdmin.from("payments").update({ status: "failed", error: message }).eq("id", row.id);
